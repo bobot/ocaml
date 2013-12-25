@@ -31,7 +31,23 @@ struct caml_ref_table {
   asize_t size;
   asize_t reserve;
 };
-CAMLextern struct caml_ref_table caml_ref_table, caml_weak_ref_table;
+CAMLextern struct caml_ref_table caml_ref_table;
+
+struct caml_ephe_ref_elt {
+  value ephe;
+  mlsize_t offset;
+};
+
+struct caml_ephe_ref_table {
+  struct caml_ephe_ref_elt *base;
+  struct caml_ephe_ref_elt *end;
+  struct caml_ephe_ref_elt *threshold;
+  struct caml_ephe_ref_elt *ptr;
+  struct caml_ephe_ref_elt *limit;
+  asize_t size;
+  asize_t reserve;
+};
+CAMLextern struct caml_ephe_ref_table caml_ephe_ref_table;
 
 #define Is_young(val) \
   (Assert (Is_block (val)), \
@@ -43,6 +59,9 @@ CAMLextern void caml_minor_collection (void);
 CAMLextern void garbage_collection (void); /* def in asmrun/signals.c */
 extern void caml_realloc_ref_table (struct caml_ref_table *);
 extern void caml_alloc_table (struct caml_ref_table *, asize_t, asize_t);
+extern void caml_realloc_ephe_ref_table (struct caml_ephe_ref_table *);
+extern void caml_alloc_ephe_table (struct caml_ephe_ref_table *,
+                                   asize_t, asize_t);
 extern void caml_oldify_one (value, value *);
 extern void caml_oldify_mopup (void);
 
