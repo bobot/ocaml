@@ -118,6 +118,7 @@ int caml_page_table_initialize(mlsize_t bytesize);
   DEBUG_clear ((result), (wosize));                                         \
 }while(0)
 
+
 /* Short-cut the value if it points to a forward tag and it is possible */
 /* If no_long is true shortcut only when the destination pointer is
    not a long */
@@ -128,7 +129,7 @@ int caml_page_table_initialize(mlsize_t bytesize);
     value fv = Forward_val (*v);
     if ((no_long && Is_long(fv)) ||
         (Is_block (fv)
-         && (!Is_in_value_area(fv) || Tag_val (fv) == Forward_tag
+        && (!Is_in_value_area(fv) || Tag_val (fv) == Forward_tag
              || Tag_val (fv) == Lazy_tag || Tag_val (fv) == Double_tag))){
       /* Do not short-circuit the pointer. */
       return 0;

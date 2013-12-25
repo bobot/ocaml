@@ -220,7 +220,7 @@ static void do_compaction (void)
     }
     /* Invert weak pointers. */
     {
-      value *pp = &caml_weak_list_head;
+      value *pp = &caml_ephe_list_head;
       value p;
       word q;
       size_t sz, i;
@@ -232,7 +232,7 @@ static void do_compaction (void)
         while (Ecolor (q) == 0) q = * (word *) q;
         sz = Wosize_ehd (q);
         for (i = 1; i < sz; i++){
-          if (Field (p,i) != caml_weak_none){
+          if (Field (p,i) != caml_ephe_none){
             invert_pointer_at ((word *) &(Field (p,i)));
           }
         }

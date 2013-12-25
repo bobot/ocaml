@@ -38,6 +38,9 @@ static value *gray_vals_cur, *gray_vals_end;
 static asize_t gray_vals_size;
 static int heap_is_pure;   /* The heap is pure if the only gray objects
                               below [markhp] are also in [gray_vals]. */
+static int ephe_list_pure;   /* The list of ephemerons is pure if
+                                since the start of its iteration
+                                no value have been darken. */
 uintnat caml_allocated_words;
 uintnat caml_dependent_size, caml_dependent_allocated;
 double caml_extra_heap_resources;
@@ -48,8 +51,8 @@ extern char *caml_fl_merge;  /* Defined in freelist.c. */
 static char *markhp, *chunk, *limit;
 
 int caml_gc_subphase;     /* Subphase_{mark_main,make_final,
-                                       clean_weak,unlink_weak} */
-static value *weak_prev;
+                                       clean_ephe,unlink_ephe} */
+static value *ephe_prev;
 
 #ifdef DEBUG
 static unsigned long major_gc_counter = 0;
@@ -94,6 +97,7 @@ void caml_darken (value v, value *p /* not used */)
     }
     CAMLassert (!Is_blue_hd (h));
     if (Is_white_hd (h)){
+      ephe_list_pure = 0;
       if (t < No_scan_tag){
         Hd_val (v) = Grayhd_hd (h);
         *gray_vals_cur++ = v;
@@ -114,6 +118,8 @@ static void start_cycle (void)
   caml_gc_phase = Phase_mark;
   caml_gc_subphase = Subphase_mark_main;
   markhp = NULL;
+  ephe_list_pure = 1;
+  ephe_prev = &caml_ephe_list_head;
 #ifdef DEBUG
   ++ major_gc_counter;
   caml_heap_check ();
@@ -121,7 +127,8 @@ static void start_cycle (void)
 }
 
 //auxillary function of mark_slice
-static inline value* mark_slice_darken(value *gray_vals_ptr, value v, int i)
+static inline value* mark_slice_darken(value *gray_vals_ptr, value v, int i,
+                                       int no_long)
 {
   value child;
   header_t hd;
@@ -130,7 +137,7 @@ static inline value* mark_slice_darken(value *gray_vals_ptr, value v, int i)
 
   if (Is_block (child) && Is_in_heap (child)) {
     hd = Hd_val (child);
-    if (caml_is_tag_forwarded(&Field(v, i), /* no_long */ 0)){
+    if (caml_is_tag_forwarded(&Field(v, i), no_long)){
       //child is not changed because it must be mark alive
     }
     else if (Tag_hd(hd) == Infix_tag) {
@@ -138,6 +145,7 @@ static inline value* mark_slice_darken(value *gray_vals_ptr, value v, int i)
       hd = Hd_val(child);
     }
     if (Is_white_hd (hd)){
+      ephe_list_pure = 0;
       Hd_val (child) = Grayhd_hd (hd);
       *gray_vals_ptr++ = child;
       if (gray_vals_ptr >= gray_vals_end) {
@@ -146,6 +154,43 @@ static inline value* mark_slice_darken(value *gray_vals_ptr, value v, int i)
         gray_vals_ptr = gray_vals_cur;
       }
     }
+  }
+
+  return gray_vals_ptr;
+}
+
+static value* mark_ephe_aux (value *gray_vals_ptr, value v, intnat *work)
+{
+  value child;
+  header_t hd;
+  mlsize_t size, i;
+
+  hd = Hd_val(v);
+  Assert(Tag_val (v) == Abstract_tag);
+  child = Field(v,1); //child = data
+  if ( child != caml_ephe_none &&
+       Is_block (child) && Is_in_heap (child) && Is_white_val (child)){
+    size = Wosize_hd (hd);
+    int alive_data = 1;
+    for (i = 2; i < size; i++){
+      child = Field (v, i); //child = one key
+    ephemeron_again:
+      if (caml_is_tag_forwarded(&child, /*no_long*/ 1)){
+        Field (v, i) = child;
+        goto ephemeron_again;
+      }
+      if (child != caml_ephe_none &&
+          Is_block (child) && Is_in_heap (child) && Is_white_val (child)){
+        alive_data = 0;
+        break;
+      }
+    }
+    if (alive_data){
+      gray_vals_ptr = mark_slice_darken(gray_vals_ptr,v,1,/*no_long*/ 1);
+    }
+    *work -= Whsize_wosize(size);
+  }else{  //a simily weak pointer or an already alive data
+    *work -= 1;
   }
 
   return gray_vals_ptr;
@@ -170,7 +215,7 @@ static void mark_slice (intnat work)
       size = Wosize_hd (hd);
       if (Tag_hd (hd) < No_scan_tag){
         for (i = 0; i < size; i++){
-          gray_vals_ptr = mark_slice_darken(gray_vals_ptr,v,i);
+          gray_vals_ptr = mark_slice_darken(gray_vals_ptr,v,i,/*no_long*/0);
         }
       }
       work -= Whsize_wosize(size);
@@ -195,6 +240,15 @@ static void mark_slice (intnat work)
       chunk = caml_heap_start;
       markhp = chunk;
       limit = chunk + Chunk_size (chunk);
+    } else if (*ephe_prev != (value) NULL) {
+      // Continue to scan the list of ephe
+      v = *ephe_prev;
+      gray_vals_ptr=mark_ephe_aux(gray_vals_ptr,v,&work);
+      ephe_prev = &Field(v,0);
+    } else if (!ephe_list_pure){
+      // We must scan again the list because some value have been darken
+      ephe_list_pure = 1;
+      ephe_prev = &caml_ephe_list_head;
     }else{
       if (caml_gc_subphase == Subphase_mark_main){
           /* Subphase_mark_main is done.
@@ -203,12 +257,13 @@ static void mark_slice (intnat work)
           caml_final_update ();
           gray_vals_ptr = gray_vals_cur;
           /* Complete the marking */
+          ephe_prev = &caml_ephe_list_head;
           caml_gc_subphase = Subphase_mark_final;
       }else{
         /* Initialise the clean phase. */
         caml_gc_phase = Phase_clean;
-        caml_gc_subphase = Subphase_clean_weak;
-        weak_prev = &caml_weak_list_head;
+        caml_gc_subphase = Subphase_clean_ephe;
+        ephe_prev = &caml_ephe_list_head;
         work = 0;
       }
     }
@@ -218,55 +273,37 @@ static void mark_slice (intnat work)
 
 static void clean_slice (intnat work)
 {
-  value v, child;
-        header_t hd;
-  mlsize_t size, i;
+  value v;
 
   caml_gc_message (0x40, "Cleaning %ld words\n", work);
   caml_gc_message (0x40, "Subphase = %ld\n", caml_gc_subphase);
   while (work > 0){
     switch (caml_gc_subphase){
-    case Subphase_clean_weak: {
-      v = *weak_prev;
+    case Subphase_clean_ephe: {
+      v = *ephe_prev;
       if (v != (value) NULL){
-        hd = Hd_val (v);
-        size = Wosize_hd (hd);
-        for (i = 1; i < size; i++){
-          child = Field (v, i);
-          weak_again:
-            if (child != caml_weak_none
-                && Is_block (child) && Is_in_heap (child)){
-              if (caml_is_tag_forwarded(&child, /*no_long*/ 1)){
-                Field (v, i) = child;
-                goto weak_again;
-              }
-              }
-          if (Is_white_val (child)){
-            Field (v, i) = caml_weak_none;
-            }
-          }
-        weak_prev = &Field (v, 0);
-          work -= Whsize_hd (hd);
-        }else{
-        /* Subphase_clean_weak is done.
-           Start removing dead weak arrays. */
-        caml_gc_subphase = Subphase_unlink_weak;
-          weak_prev = &caml_weak_list_head;
-        }
+        caml_ephe_clean(v);
+        ephe_prev = &Field (v, 0);
+        work -= Whsize_val (v);
+      }else{
+        /* Subphase_clean_ephe is done.
+           Start removing dead ephe arrays. */
+        caml_gc_subphase = Subphase_unlink_ephe;
+        ephe_prev = &caml_ephe_list_head;
       }
-        break;
-    case Subphase_unlink_weak: {
-      v = *weak_prev;
+    }
+      break;
+    case Subphase_unlink_ephe: {
+      v = *ephe_prev;
       if (v != (value) NULL){
-        hd = Hd_val (v);
-          if (Color_hd (hd) == Caml_white){
-            /* The whole array is dead, remove it from the list. */
-          *weak_prev = Field (v, 0);
-          }else{
-          weak_prev = &Field (v, 0);
-          }
-          work -= 1;
+        if (Color_val (v) == Caml_white){
+          /* The whole array is dead, remove it from the list. */
+          *ephe_prev = Field (v, 0);
         }else{
+          ephe_prev = &Field (v, 0);
+        }
+        work -= 1;
+      }else{
         /* Phase_clean is done. */
         /* Initialise the sweep phase. */
         caml_gc_sweep_hp = caml_heap_start;
@@ -279,11 +316,12 @@ static void clean_slice (intnat work)
         caml_fl_size_at_phase_change = caml_fl_cur_size;
       }
     }
-        break;
-      default: Assert (0);
-      }
+      break;
+    default: Assert (0);
     }
   }
+}
+
 
 static void sweep_slice (intnat work)
 {
