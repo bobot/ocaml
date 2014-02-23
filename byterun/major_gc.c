@@ -118,6 +118,44 @@ static void start_cycle (void)
 #endif
 }
 
+//auxillary function of mark_slice
+static inline value* mark_slice_darken(value *gray_vals_ptr, value v, int i)
+{
+  value child;
+  header_t hd;
+
+  child = Field (v, i);
+
+  if (Is_block (child) && Is_in_heap (child)) {
+    hd = Hd_val (child);
+    if (Tag_hd (hd) == Forward_tag){
+      value f = Forward_val (child);
+      if (Is_block (f)
+          && (!Is_in_value_area(f) || Tag_val (f) == Forward_tag
+              || Tag_val (f) == Lazy_tag || Tag_val (f) == Double_tag)){
+        /* Do not short-circuit the pointer. */
+      }else{
+        Field (v, i) = f;
+      }
+    }
+    else if (Tag_hd(hd) == Infix_tag) {
+      child -= Infix_offset_val(child);
+      hd = Hd_val(child);
+    }
+    if (Is_white_hd (hd)){
+      Hd_val (child) = Grayhd_hd (hd);
+      *gray_vals_ptr++ = child;
+      if (gray_vals_ptr >= gray_vals_end) {
+        gray_vals_cur = gray_vals_ptr;
+        realloc_gray_vals ();
+        gray_vals_ptr = gray_vals_cur;
+      }
+    }
+  }
+
+  return gray_vals_ptr;
+}
+
 static void mark_slice (intnat work)
 {
   value *gray_vals_ptr;  /* Local copy of gray_vals_cur */
@@ -137,33 +175,7 @@ static void mark_slice (intnat work)
       size = Wosize_hd (hd);
       if (Tag_hd (hd) < No_scan_tag){
         for (i = 0; i < size; i++){
-          child = Field (v, i);
-          if (Is_block (child) && Is_in_heap (child)) {
-            hd = Hd_val (child);
-            if (Tag_hd (hd) == Forward_tag){
-              value f = Forward_val (child);
-              if (Is_block (f)
-                  && (!Is_in_value_area(f) || Tag_val (f) == Forward_tag
-                      || Tag_val (f) == Lazy_tag || Tag_val (f) == Double_tag)){
-                /* Do not short-circuit the pointer. */
-              }else{
-                Field (v, i) = f;
-              }
-            }
-            else if (Tag_hd(hd) == Infix_tag) {
-              child -= Infix_offset_val(child);
-              hd = Hd_val(child);
-            }
-            if (Is_white_hd (hd)){
-              Hd_val (child) = Grayhd_hd (hd);
-              *gray_vals_ptr++ = child;
-              if (gray_vals_ptr >= gray_vals_end) {
-                gray_vals_cur = gray_vals_ptr;
-                realloc_gray_vals ();
-                gray_vals_ptr = gray_vals_cur;
-              }
-            }
-          }
+          gray_vals_ptr = mark_slice_darken(gray_vals_ptr,v,i);
         }
       }
       work -= Whsize_wosize(size);
