@@ -27,6 +27,7 @@
 #include "misc.h"
 #include "mlvalues.h"
 #include "reverse.h"
+#include "finalise.h"
 
 static uintnat obj_counter;  /* Number of objects emitted so far */
 static uintnat size_32;  /* Size in words of 32-bit block for struct. */
@@ -392,16 +393,8 @@ static void extern_rec(value v)
     tag_t tag = Tag_hd(hd);
     mlsize_t sz = Wosize_hd(hd);
 
-    if (tag == Forward_tag) {
-      value f = Forward_val (v);
-      if (Is_block (f)
-          && (!Is_in_value_area(f) || Tag_val (f) == Forward_tag
-              || Tag_val (f) == Lazy_tag || Tag_val (f) == Double_tag)){
-        /* Do not short-circuit the pointer. */
-      }else{
-        v = f;
-        continue;
-      }
+    if(caml_is_tag_forwarded(&v, /*no_long*/ 0)){
+      continue;
     }
     /* Atoms are treated specially for two reasons: they are not allocated
        in the externed block, and they are automatically shared. */

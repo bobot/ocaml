@@ -128,15 +128,8 @@ static inline value* mark_slice_darken(value *gray_vals_ptr, value v, int i)
 
   if (Is_block (child) && Is_in_heap (child)) {
     hd = Hd_val (child);
-    if (Tag_hd (hd) == Forward_tag){
-      value f = Forward_val (child);
-      if (Is_block (f)
-          && (!Is_in_value_area(f) || Tag_val (f) == Forward_tag
-              || Tag_val (f) == Lazy_tag || Tag_val (f) == Double_tag)){
-        /* Do not short-circuit the pointer. */
-      }else{
-        Field (v, i) = f;
-      }
+    if (caml_is_tag_forwarded(&Field(v, i), /* no_long */ 0)){
+      //child is not changed because it must be mark alive
     }
     else if (Tag_hd(hd) == Infix_tag) {
       child -= Infix_offset_val(child);
@@ -159,7 +152,7 @@ static inline value* mark_slice_darken(value *gray_vals_ptr, value v, int i)
 static void mark_slice (intnat work)
 {
   value *gray_vals_ptr;  /* Local copy of gray_vals_cur */
-  value v, child;
+  value v;
   header_t hd;
   mlsize_t size, i;
 
@@ -223,17 +216,9 @@ static void mark_slice (intnat work)
           weak_again:
             if (curfield != caml_weak_none
                 && Is_block (curfield) && Is_in_heap (curfield)){
-              if (Tag_val (curfield) == Forward_tag){
-                value f = Forward_val (curfield);
-                if (Is_block (f)) {
-                  if (!Is_in_value_area(f) || Tag_val (f) == Forward_tag
-                      || Tag_val (f) == Lazy_tag || Tag_val (f) == Double_tag){
-                    /* Do not short-circuit the pointer. */
-                  }else{
-                    Field (cur, i) = curfield = f;
-                    goto weak_again;
-                  }
-                }
+              if (caml_is_tag_forwarded(&curfield, /*no_long*/ 1)){
+                Field (cur, i) = curfield;
+                goto weak_again;
               }
               if (Is_white_val (curfield)){
                 Field (cur, i) = caml_weak_none;

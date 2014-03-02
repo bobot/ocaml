@@ -118,6 +118,27 @@ int caml_page_table_initialize(mlsize_t bytesize);
   DEBUG_clear ((result), (wosize));                                         \
 }while(0)
 
+/* Short-cut the value if it points to a forward tag and it is possible */
+/* If no_long is true shortcut only when the destination pointer is
+   not a long */
+  static inline int caml_is_tag_forwarded(value *v, int no_long){
+  if (Tag_val (*v) != Forward_tag){
+    return 0;
+  } else {
+    value fv = Forward_val (*v);
+    if ((no_long && Is_long(fv)) ||
+        (Is_block (fv)
+         && (!Is_in_value_area(fv) || Tag_val (fv) == Forward_tag
+             || Tag_val (fv) == Lazy_tag || Tag_val (fv) == Double_tag))){
+      /* Do not short-circuit the pointer. */
+      return 0;
+    } else {
+      *v = fv;
+      return 1;
+    }
+  }
+}
+
 /* Deprecated alias for [caml_modify] */
 
 #define Modify(fp,val) caml_modify((fp), (val))
