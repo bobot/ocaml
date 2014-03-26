@@ -42,6 +42,11 @@
      - it is reachable from alive value by usual pointers
      - it is the data of an ephemeron with all its full keys alive
 
+    Notes:
+    - All the types defined in this module cannot be marshaled
+    using {!Pervasives.output_value} nor the functions of the
+    {!Marshal} module.
+
 *)
 
 module type S = sig
