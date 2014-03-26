@@ -29,7 +29,7 @@
 
     The data is considered by the garbage collector alive if all the
     full keys are alive and if the ephemeron is alive. When one of the
-    keys is not considered alive anymore bu the GC, the data is
+    keys is not considered alive anymore by the GC, the data is
     emptied from the ephemeron even if the data is alive for another
     reason.
 *)
