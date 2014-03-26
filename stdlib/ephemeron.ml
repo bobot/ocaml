@@ -86,7 +86,7 @@ module Obj = struct
 
     let prng = lazy (Random.State.make_self_init())
 
-    let create ?(random = (Hashtbl.is_randomize ())) initial_size =
+    let create ?(random = (Hashtbl.is_randomized ())) initial_size =
       let s = power_2_above 16 initial_size in
       let seed = if random then Random.State.bits (Lazy.force prng) else 0 in
       { initial_size = s; size = 0; seed = seed; data = Array.make s Empty }
