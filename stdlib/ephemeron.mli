@@ -32,6 +32,16 @@
     keys is not considered alive anymore by the GC, the data is
     emptied from the ephemeron even if the data is alive for another
     reason.
+
+    The ephemerons complicate the notion of liveness of values, because
+    it is not anymore an equivalence with the reachability from root
+    value by usual pointers (not weak and not ephemerons). The notion
+    of liveness is constructed by the least fixpoint of:
+    A value is alive if:
+     - it is a root value
+     - it is reachable from alive value by usual pointers
+     - it is the data of an ephemeron with all its full keys alive
+
 *)
 
 module type S = sig
@@ -40,6 +50,9 @@ module type S = sig
   (** same as {!Hashtbl.SeededS.stats} but only count the alive bindings *)
 end
 (** The output signature of the functor {!K1.Make} and {!K2.Make}.
+    These hashtables are weak in the keys. If all the keys of a binding are
+    alive the binding is kept, but if one of the keys of the binding
+    is dead then the binding is removed.
 *)
 
 module type SeededS = sig
