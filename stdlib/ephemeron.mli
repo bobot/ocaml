@@ -39,6 +39,8 @@ module type SeededS = sig
   val stats_alive: 'a t -> Hashtbl.statistics
   (** same as {!Hashtbl.SeededS.stats} but only count the alive bindings *)
 end
+(** The output signature of the functor {!K1.MakeSeeded} and {!K2.MakeSeeded}.
+*)
 
 module K1 : sig
   type ('k,'d) t (** an ephemeron with one key *)
