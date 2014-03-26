@@ -219,7 +219,8 @@ module Obj: sig
     (** an ephemeron *)
 
   val create: int -> t
-  (** Same as {!Ephemeron.K1.create} *)
+  (** [create n] returns an ephemeron with [n] keys.
+      All the keys and the data are initially empty *)
   val length: t -> int
   (** return the number of keys *)
 
