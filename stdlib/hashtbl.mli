@@ -165,7 +165,7 @@ val randomize : unit -> unit
 
     @since 4.00.0 *)
 
-val is_randomize : unit -> bool
+val is_randomized : unit -> bool
 (** return if the tables are currently created in randomized mode by default
 
     @since 4.02.0 *)
