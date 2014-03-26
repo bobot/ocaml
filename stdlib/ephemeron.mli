@@ -54,7 +54,7 @@ module K1 : sig
   val get_key_copy: ('k,'d) t -> 'k option
   (** [Ephemeron.K1.get_key_copy eph] returns [None] if the key of [eph] is
       empty, [Some x] (where [x] is a (shallow) copy of the key) if
-      it is full. This function as the same GC friendliness as {!Weak.get_copy}
+      it is full. This function has the same GC friendliness as {!Weak.get_copy}
   *)
 
   val set_key: ('k,'d) t -> 'k -> unit
@@ -89,7 +89,7 @@ module K1 : sig
   val get_data_copy: ('k,'d) t -> 'd option
   (** [Ephemeron.K1.get_data_copy eph] returns [None] if the data of [eph] is
       empty, [Some x] (where [x] is a (shallow) copy of the data) if
-      it is full. This function as the same GC friendliness as {!Weak.get_copy}
+      it is full. This function has the same GC friendliness as {!Weak.get_copy}
   *)
 
   val set_data: ('k,'d) t -> 'd -> unit
