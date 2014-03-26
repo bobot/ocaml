@@ -376,6 +376,17 @@ module K1 = struct
       let set_data = set_data
       let check_key = check_key
     end)
+
+  module Make(H: Hashtbl.HashedType): (S with type key = H.t) =
+  struct
+    include MakeSeeded(struct
+        type t = H.t
+        let equal = H.equal
+        let hash (seed: int) x = H.hash x
+      end)
+    let create sz = create ~random:false sz
+  end
+
 end
 
 module K2 = struct
@@ -442,4 +453,22 @@ module K2 = struct
       let set_data = set_data
       let check_key c = check_key1 c && check_key2 c
     end)
+
+  module Make(H1: Hashtbl.HashedType)(H2: Hashtbl.HashedType):
+    (S with type key = H1.t * H2.t) =
+  struct
+    include MakeSeeded
+        (struct
+          type t = H1.t
+          let equal = H1.equal
+          let hash (seed: int) x = H1.hash x
+        end)
+        (struct
+          type t = H2.t
+          let equal = H2.equal
+          let hash (seed: int) x = H2.hash x
+        end)
+    let create sz = create ~random:false sz
+  end
+
 end

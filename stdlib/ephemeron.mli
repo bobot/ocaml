@@ -34,6 +34,14 @@
     reason.
 *)
 
+module type S = sig
+  include Hashtbl.S
+  val stats_alive: 'a t -> Hashtbl.statistics
+  (** same as {!Hashtbl.SeededS.stats} but only count the alive bindings *)
+end
+(** The output signature of the functor {!K1.Make} and {!K2.Make}.
+*)
+
 module type SeededS = sig
   include Hashtbl.SeededS
   val stats_alive: 'a t -> Hashtbl.statistics
@@ -118,8 +126,12 @@ module K1 : sig
       this function does not prevent the incremental GC from erasing
       the value in its current cycle. *)
 
-  module MakeSeeded (H:Hashtbl.SeededHashedType) : SeededS with type key = H.t
+  module Make (H:Hashtbl.HashedType) : S with type key = H.t
   (** Functor building an implementation of a weak hash table *)
+
+  module MakeSeeded (H:Hashtbl.SeededHashedType) : SeededS with type key = H.t
+  (** Functor building an implementation of a weak hash table.
+      The seed is similar to the one of {!Hashtbl.MakeSeeded}. *)
 
 end
 
@@ -169,11 +181,18 @@ module K2 : sig
   val blit_data: ('k1,'k2,'d) t -> ('k1,'k2,'d) t -> unit
   (** Same as {!Ephemeron.K1.blit_data} *)
 
+  module Make
+      (H1:Hashtbl.HashedType)
+      (H2:Hashtbl.HashedType) :
+    S with type key = H1.t * H2.t
+  (** Functor building an implementation of a weak hash table *)
+
   module MakeSeeded
       (H1:Hashtbl.SeededHashedType)
       (H2:Hashtbl.SeededHashedType) :
     SeededS with type key = H1.t * H2.t
-  (** Functor building an implementation of a weak hash table *)
+  (** Functor building an implementation of a weak hash table.
+      The seed is similar to the one of {!Hashtbl.MakeSeeded}. *)
 
 end
 
