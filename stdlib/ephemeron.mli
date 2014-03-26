@@ -11,9 +11,9 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(** Ephemerons and weak table *)
+(** Ephemerons and weak hash table *)
 
-(** Ephemerons and weak table
+(** Ephemerons and weak hash table
 
     Ephemerons are defined in a language agnostic way in this paper:
     B. Hayes, Ephemerons: a New Finalization Mechanism, OOPSLA'9
@@ -50,7 +50,7 @@ module type S = sig
   (** same as {!Hashtbl.SeededS.stats} but only count the alive bindings *)
 end
 (** The output signature of the functor {!K1.Make} and {!K2.Make}.
-    These hashtables are weak in the keys. If all the keys of a binding are
+    These hash tables are weak in the keys. If all the keys of a binding are
     alive the binding is kept, but if one of the keys of the binding
     is dead then the binding is removed.
 *)
