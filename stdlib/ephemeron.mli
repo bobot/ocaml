@@ -214,46 +214,11 @@ module K2 : sig
 
 end
 
-module Obj: sig
-    (** This module define very low-level untyped use of ephemeron
+module GenHashTable: sig
+  (** Define hash table on generic containers. *)
 
-        Not for the casual user.
-    *)
-
-  type t
-    (** an ephemeron *)
-
-  val create: int -> t
-  (** [create n] returns an ephemeron with [n] keys.
-      All the keys and the data are initially empty *)
-  val length: t -> int
-  (** return the number of keys *)
-
-  val get_key: t -> int -> Obj.t option
-  (** Same as {!Ephemeron.K1.get_key} *)
-  val get_key_copy: t -> int -> Obj.t option
-  (** Same as {!Ephemeron.K1.get_key_copy} *)
-  val set_key: t -> int -> Obj.t -> unit
-  (** Same as {!Ephemeron.K1.set_key} *)
-  val unset_key: t -> int -> unit
-  (** Same as {!Ephemeron.K1.unset_key} *)
-  val check_key: t -> int -> bool
-  (** Same as {!Ephemeron.K1.check_key} *)
-  val blit_key : t -> int -> t -> int -> int -> unit
-  (** Same as {!Ephemeron.K1.blit_key} *)
-
-  val get_data: t -> Obj.t option
-  (** Same as {!Ephemeron.K1.get_data} *)
-  val get_data_copy: t -> Obj.t option
-  (** Same as {!Ephemeron.K1.get_data_copy} *)
-  val set_data: t -> Obj.t -> unit
-  (** Same as {!Ephemeron.K1.set_data} *)
-  val unset_data: t -> unit
-  (** Same as {!Ephemeron.K1.unset_data} *)
-  val check_data: t -> bool
-  (** Same as {!Ephemeron.K1.check_data} *)
-  val blit_data : t -> t -> unit
-  (** Same as {!Ephemeron.K1.blit_data} *)
+  (** It can be used in conjunction of {!Obj.Ephemeron}
+      for building weak hash table for specific type of keys *)
 
   type equal =
   | ETrue | EFalse

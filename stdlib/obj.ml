@@ -56,3 +56,28 @@ let final_tag = custom_tag
 let int_tag = 1000
 let out_of_heap_tag = 1001
 let unaligned_tag = 1002
+
+module Ephemeron = struct
+  type eph (** ephemeron *)
+
+  external create: int -> eph = "caml_ephe_create"
+
+  let length x = size(repr x) - 2
+
+  external get_key: eph -> int -> t option = "caml_ephe_get_key"
+  external get_key_copy: eph -> int -> t option = "caml_ephe_get_key_copy"
+  external set_key: eph -> int -> t -> unit = "caml_ephe_set_key"
+  external unset_key: eph -> int -> unit = "caml_ephe_unset_key"
+  external check_key: eph -> int -> bool = "caml_ephe_check_key"
+  external blit_key : eph -> int -> eph -> int -> int -> unit
+    = "caml_ephe_blit_key"
+
+  external get_data: eph -> t option = "caml_ephe_get_data"
+  external get_data_copy: eph -> t option = "caml_ephe_get_data_copy"
+  external set_data: eph -> t -> unit = "caml_ephe_set_data"
+  external unset_data: eph -> unit = "caml_ephe_unset_data"
+  external check_data: eph -> bool = "caml_ephe_check_data"
+  external blit_data : eph -> eph -> unit = "caml_ephe_blit_data"
+
+
+end

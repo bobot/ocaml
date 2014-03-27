@@ -23,29 +23,7 @@ module type S = sig
     (** same as {!stats} but only count the alive bindings *)
 end
 
-module StdObj = Obj
-
-module Obj = struct
-
-  type t
-
-  external create: int -> t = "caml_ephe_create"
-
-  let length x = Obj.size(Obj.repr x) - 2
-
-  external get_key: t -> int -> Obj.t option = "caml_ephe_get_key"
-  external get_key_copy: t -> int -> Obj.t option = "caml_ephe_get_key_copy"
-  external set_key: t -> int -> Obj.t -> unit = "caml_ephe_set_key"
-  external unset_key: t -> int -> unit = "caml_ephe_unset_key"
-  external check_key: t -> int -> bool = "caml_ephe_check_key"
-  external blit_key : t -> int -> t -> int -> int -> unit = "caml_ephe_blit_key"
-
-  external get_data: t -> Obj.t option = "caml_ephe_get_data"
-  external get_data_copy: t -> Obj.t option = "caml_ephe_get_data_copy"
-  external set_data: t -> Obj.t -> unit = "caml_ephe_set_data"
-  external unset_data: t -> unit = "caml_ephe_unset_data"
-  external check_data: t -> bool = "caml_ephe_check_data"
-  external blit_data : t -> t -> unit = "caml_ephe_blit_data"
+module GenHashTable = struct
 
   type equal =
   | ETrue | EFalse
@@ -325,40 +303,42 @@ module Obj = struct
 
 
   end
-
 end
 
-let obj_opt : StdObj.t option -> 'a option = fun x ->
+module ObjEph = Obj.Ephemeron
+
+let obj_opt : Obj.t option -> 'a option = fun x ->
   match x with
   | None -> x
-  | Some v -> Some (StdObj.obj v)
+  | Some v -> Some (Obj.obj v)
 
 (** The previous function is typed so this one is also correct *)
-let obj_opt : StdObj.t option -> 'a option = fun x -> StdObj.magic x
+let obj_opt : Obj.t option -> 'a option = fun x -> Obj.magic x
 
 
 module K1 = struct
-  type ('k,'d) t = Obj.t
+  type ('k,'d) t = ObjEph.eph
 
-  let create () : ('k,'d) t = Obj.create 1
+  let create () : ('k,'d) t = ObjEph.create 1
 
-  let get_key (t:('k,'d) t) : 'k option = obj_opt (Obj.get_key t 0)
-  let get_key_copy (t:('k,'d) t) : 'k option = obj_opt (Obj.get_key_copy t 0)
-  let set_key (t:('k,'d) t) (k:'k) : unit = Obj.set_key t 0 (StdObj.repr k)
-  let unset_key (t:('k,'d) t) : unit = Obj.unset_key t 0
-  let check_key (t:('k,'d) t) : bool = Obj.check_key t 0
+  let get_key (t:('k,'d) t) : 'k option = obj_opt (ObjEph.get_key t 0)
+  let get_key_copy (t:('k,'d) t) : 'k option = obj_opt (ObjEph.get_key_copy t 0)
+  let set_key (t:('k,'d) t) (k:'k) : unit = ObjEph.set_key t 0 (Obj.repr k)
+  let unset_key (t:('k,'d) t) : unit = ObjEph.unset_key t 0
+  let check_key (t:('k,'d) t) : bool = ObjEph.check_key t 0
 
-  let blit_key (t1:('k,'d) t) (t2:('k,'d) t) : unit = Obj.blit_key t1 0 t2 0 1
+  let blit_key (t1:('k,'d) t) (t2:('k,'d) t): unit =
+    ObjEph.blit_key t1 0 t2 0 1
 
-  let get_data (t:('k,'d) t) : 'd option = obj_opt (Obj.get_data t)
-  let get_data_copy (t:('k,'d) t) : 'd option = obj_opt (Obj.get_data_copy t)
-  let set_data (t:('k,'d) t) (d:'d) : unit = Obj.set_data t (StdObj.repr d)
-  let unset_data (t:('k,'d) t) : unit = Obj.unset_data t
-  let check_data (t:('k,'d) t) : bool = Obj.check_data t
-  let blit_data (t1:(_,'d) t) (t2:(_,'d) t) : unit = Obj.blit_data t1 t2
+  let get_data (t:('k,'d) t) : 'd option = obj_opt (ObjEph.get_data t)
+  let get_data_copy (t:('k,'d) t) : 'd option = obj_opt (ObjEph.get_data_copy t)
+  let set_data (t:('k,'d) t) (d:'d) : unit = ObjEph.set_data t (Obj.repr d)
+  let unset_data (t:('k,'d) t) : unit = ObjEph.unset_data t
+  let check_data (t:('k,'d) t) : bool = ObjEph.check_data t
+  let blit_data (t1:(_,'d) t) (t2:(_,'d) t) : unit = ObjEph.blit_data t1 t2
 
   module MakeSeeded (H:Hashtbl.SeededHashedType) =
-    Obj.MakeSeeded(struct
+    GenHashTable.MakeSeeded(struct
       type 'a container = (H.t,'a) t
       type t = H.t
       let create k d =
@@ -369,8 +349,9 @@ module K1 = struct
       let hash = H.hash
       let equal k c =
         match get_key c with
-        | None -> Obj.EDead
-        | Some k' -> if H.equal k k' then Obj.ETrue else Obj.EFalse
+        | None -> GenHashTable.EDead
+        | Some k' ->
+            if H.equal k k' then GenHashTable.ETrue else GenHashTable.EFalse
       let get_data = get_data
       let get_key = get_key
       let set_data = set_data
@@ -390,46 +371,47 @@ module K1 = struct
 end
 
 module K2 = struct
-  type ('k1, 'k2, 'd) t = Obj.t
+  type ('k1, 'k2, 'd) t = ObjEph.eph
 
-  let create () : ('k1,'k2,'d) t = Obj.create 1
+  let create () : ('k1,'k2,'d) t = ObjEph.create 1
 
-  let get_key1 (t:('k1,'k2,'d) t) : 'k1 option = obj_opt (Obj.get_key t 0)
+  let get_key1 (t:('k1,'k2,'d) t) : 'k1 option = obj_opt (ObjEph.get_key t 0)
   let get_key1_copy (t:('k1,'k2,'d) t) : 'k1 option =
-    obj_opt (Obj.get_key_copy t 0)
+    obj_opt (ObjEph.get_key_copy t 0)
   let set_key1 (t:('k1,'k2,'d) t) (k:'k1) : unit =
-    Obj.set_key t 0 (StdObj.repr k)
-  let unset_key1 (t:('k1,'k2,'d) t) : unit = Obj.unset_key t 0
-  let check_key1 (t:('k1,'k2,'d) t) : bool = Obj.check_key t 0
+    ObjEph.set_key t 0 (Obj.repr k)
+  let unset_key1 (t:('k1,'k2,'d) t) : unit = ObjEph.unset_key t 0
+  let check_key1 (t:('k1,'k2,'d) t) : bool = ObjEph.check_key t 0
 
-  let get_key2 (t:('k1,'k2,'d) t) : 'k2 option = obj_opt (Obj.get_key t 1)
+  let get_key2 (t:('k1,'k2,'d) t) : 'k2 option = obj_opt (ObjEph.get_key t 1)
   let get_key2_copy (t:('k1,'k2,'d) t) : 'k2 option =
-    obj_opt (Obj.get_key_copy t 1)
+    obj_opt (ObjEph.get_key_copy t 1)
   let set_key2 (t:('k1,'k2,'d) t) (k:'k2) : unit =
-    Obj.set_key t 1 (StdObj.repr k)
-  let unset_key2 (t:('k1,'k2,'d) t) : unit = Obj.unset_key t 1
-  let check_key2 (t:('k1,'k2,'d) t) : bool = Obj.check_key t 1
+    ObjEph.set_key t 1 (Obj.repr k)
+  let unset_key2 (t:('k1,'k2,'d) t) : unit = ObjEph.unset_key t 1
+  let check_key2 (t:('k1,'k2,'d) t) : bool = ObjEph.check_key t 1
 
 
   let blit_key1 (t1:('k1,_,_) t) (t2:('k1,_,_) t) : unit =
-    Obj.blit_key t1 0 t2 0 1
+    ObjEph.blit_key t1 0 t2 0 1
   let blit_key2 (t1:(_,'k2,_) t) (t2:(_,'k2,_) t) : unit =
-    Obj.blit_key t1 1 t2 1 1
+    ObjEph.blit_key t1 1 t2 1 1
   let blit_key12 (t1:('k1,'k2,_) t) (t2:('k1,'k2,_) t) : unit =
-    Obj.blit_key t1 0 t2 0 2
+    ObjEph.blit_key t1 0 t2 0 2
 
-  let get_data (t:('k1,'k2,'d) t) : 'd option = obj_opt (Obj.get_data t)
+  let get_data (t:('k1,'k2,'d) t) : 'd option = obj_opt (ObjEph.get_data t)
   let get_data_copy (t:('k1,'k2,'d) t) : 'd option =
-    obj_opt (Obj.get_data_copy t)
-  let set_data (t:('k1,'k2,'d) t) (d:'d) : unit = Obj.set_data t (StdObj.repr d)
-  let unset_data (t:('k1,'k2,'d) t) : unit = Obj.unset_data t
-  let check_data (t:('k1,'k2,'d) t) : bool = Obj.check_data t
-  let blit_data (t1:(_,_,'d) t) (t2:(_,_,'d) t) : unit = Obj.blit_data t1 t2
+    obj_opt (ObjEph.get_data_copy t)
+  let set_data (t:('k1,'k2,'d) t) (d:'d) : unit =
+    ObjEph.set_data t (Obj.repr d)
+  let unset_data (t:('k1,'k2,'d) t) : unit = ObjEph.unset_data t
+  let check_data (t:('k1,'k2,'d) t) : bool = ObjEph.check_data t
+  let blit_data (t1:(_,_,'d) t) (t2:(_,_,'d) t) : unit = ObjEph.blit_data t1 t2
 
   module MakeSeeded
       (H1:Hashtbl.SeededHashedType)
       (H2:Hashtbl.SeededHashedType) =
-    Obj.MakeSeeded(struct
+    GenHashTable.MakeSeeded(struct
       type 'a container = (H1.t,H2.t,'a) t
       type t = H1.t * H2.t
       let create (k1,k2) d =
@@ -441,10 +423,10 @@ module K2 = struct
         H1.hash seed k1 + H2.hash seed k2 * 65599
       let equal (k1,k2) c =
         match get_key1 c, get_key2 c with
-        | None, _ | _ , None -> Obj.EDead
+        | None, _ | _ , None -> GenHashTable.EDead
         | Some k1', Some k2' ->
             if H1.equal k1 k1' && H2.equal k2 k2'
-            then Obj.ETrue else Obj.EFalse
+            then GenHashTable.ETrue else GenHashTable.EFalse
       let get_data = get_data
       let get_key c =
         match get_key1 c, get_key2 c with
