@@ -348,6 +348,8 @@ module K1 = struct
         c
       let hash = H.hash
       let equal k c =
+        (** {!get_key_copy} is not used because the equality of the user can be
+            the physical equality *)
         match get_key c with
         | None -> GenHashTable.EDead
         | Some k' ->
@@ -453,4 +455,98 @@ module K2 = struct
     let create sz = create ~random:false sz
   end
 
+end
+
+module Kn = struct
+  type ('k,'d) t = ObjEph.eph
+
+  let create n : ('k,'d) t = ObjEph.create n
+  let length (k:('k,'d) t) : int = ObjEph.length k
+
+  let get_key (t:('k,'d) t) (n:int) : 'k option = obj_opt (ObjEph.get_key t n)
+  let get_key_copy (t:('k,'d) t) (n:int) : 'k option =
+    obj_opt (ObjEph.get_key_copy t n)
+  let set_key (t:('k,'d) t) (k:'k) (n:int) : unit =
+    ObjEph.set_key t n (Obj.repr k)
+  let unset_key (t:('k,'d) t) (n:int) : unit = ObjEph.unset_key t n
+  let check_key (t:('k,'d) t) (n:int) : bool = ObjEph.check_key t n
+
+  let blit_key (t1:('k,'d) t) (o1:int) (t2:('k,'d) t) (o2:int) (l:int) : unit =
+    ObjEph.blit_key t1 o1 t2 o2 l
+
+  let get_data (t:('k,'d) t) : 'd option = obj_opt (ObjEph.get_data t)
+  let get_data_copy (t:('k,'d) t) : 'd option = obj_opt (ObjEph.get_data_copy t)
+  let set_data (t:('k,'d) t) (d:'d) : unit = ObjEph.set_data t (Obj.repr d)
+  let unset_data (t:('k,'d) t) : unit = ObjEph.unset_data t
+  let check_data (t:('k,'d) t) : bool = ObjEph.check_data t
+  let blit_data (t1:(_,'d) t) (t2:(_,'d) t) : unit = ObjEph.blit_data t1 t2
+
+  module MakeSeeded (H:Hashtbl.SeededHashedType) =
+    GenHashTable.MakeSeeded(struct
+      type 'a container = (H.t,'a) t
+      type t = H.t array
+      let create k d =
+        let c = create (Array.length k) in
+        set_data c d;
+        for i=0 to Array.length k -1 do
+          set_key c k.(i) i;
+        done;
+        c
+      let hash seed k =
+        let h = ref 0 in
+        for i=0 to Array.length k -1 do
+          h := H.hash seed k.(i) * 65599 + !h;
+        done;
+        !h
+      let equal k c =
+        let len  = Array.length k in
+        let len' = length c in
+        if len != len' then GenHashTable.EFalse
+        else
+          let rec equal_array k c i =
+            if i < 0 then GenHashTable.ETrue
+            else
+              match get_key c i with
+              | None -> GenHashTable.EDead
+              | Some ki ->
+                  if H.equal k.(i) ki
+                  then equal_array k c (i-1)
+                  else GenHashTable.EFalse
+          in
+          equal_array k c (len-1)
+      let get_data = get_data
+      let get_key c =
+        let len = length c in
+        if len = 0 then Some [||]
+        else
+          match get_key c 0 with
+          | None -> None
+          | Some k0 ->
+              let rec fill a i =
+                if i < 1 then Some a
+                else
+                  match get_key c i with
+                  | None -> None
+                  | Some ki ->
+                      a.(i) <- ki;
+                      fill a (i-1)
+              in
+              let a = Array.create len k0 in
+              fill a (len-1)
+      let set_data = set_data
+      let check_key c =
+        let rec check c i =
+          i < 0 || (check_key c i && check c (i-1)) in
+        check c (length c - 1)
+    end)
+
+  module Make(H: Hashtbl.HashedType): (S with type key = H.t array) =
+  struct
+    include MakeSeeded(struct
+        type t = H.t
+        let equal = H.equal
+        let hash (seed: int) x = H.hash x
+      end)
+    let create sz = create ~random:false sz
+  end
 end
