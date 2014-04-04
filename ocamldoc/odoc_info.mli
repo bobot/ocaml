@@ -712,8 +712,10 @@ val remove_option : Types.type_expr -> Types.type_expr
 val is_optional : Asttypes.arrow_flag -> bool
 
 (** Return the label name for the given label,
-   i.e. removes the beginning '?' if present.*)
-val label_name : Asttypes.arrow_flag -> string
+   i.e. removes the beginning '?' if present.
+    Return None if the arrow is not a label.
+*)
+val label_name : Asttypes.arrow_flag -> string option
 
 (** Return the given name where the module name or
    part of it was removed, according to the list of modules

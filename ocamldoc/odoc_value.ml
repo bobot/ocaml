@@ -100,13 +100,14 @@ let dummy_parameter_list typ =
   let rec iter (label, t) =
     match t.Types.desc with
     | Types.Ttuple l ->
-        if label = Asttypes.Simple then
-          Odoc_parameter.Tuple
-            (List.map (fun t2 -> iter (Asttypes.Simple, t2)) l, t)
-        else
+        match Odoc_misc.label_name label with
+        | None -> (* simple *)
+            Odoc_parameter.Tuple
+              (List.map (fun t2 -> iter (Asttypes.Simple, t2)) l, t)
+        | Some name ->
           (* if there is a label, then we don't want to decompose the tuple *)
           Odoc_parameter.Simple_name
-            { Odoc_parameter.sn_name = Odoc_misc.label_name label ;
+            { Odoc_parameter.sn_name = name;
               Odoc_parameter.sn_type = t ;
               Odoc_parameter.sn_text = None }
     | Types.Tlink t2

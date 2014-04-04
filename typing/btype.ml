@@ -550,8 +550,8 @@ let is_optional = function
   | _ -> false
 
 let label_name = function
-  | Simple -> ""
-  | Optional s | Labelled s -> s
+  | Simple -> None
+  | Optional s | Labelled s -> Some s
 
 let label_raw = function
   | Simple -> ""
