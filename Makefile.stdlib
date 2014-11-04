@@ -1,0 +1,69 @@
+
+
+STDLIB_OTHERS=array.cmo list.cmo char.cmo bytes.cmo string.cmo sys.cmo \
+  sort.cmo marshal.cmo obj.cmo \
+  int32.cmo int64.cmo nativeint.cmo \
+  lexing.cmo parsing.cmo \
+  set.cmo map.cmo stack.cmo queue.cmo \
+  camlinternalLazy.cmo lazy.cmo stream.cmo \
+  buffer.cmo camlinternalFormat.cmo printf.cmo \
+  arg.cmo printexc.cmo gc.cmo \
+  digest.cmo random.cmo hashtbl.cmo format.cmo scanf.cmo callback.cmo \
+  camlinternalOO.cmo oo.cmo camlinternalMod.cmo \
+  genlex.cmo weak.cmo \
+  filename.cmo complex.cmo \
+  arrayLabels.cmo listLabels.cmo bytesLabels.cmo \
+  stringLabels.cmo moreLabels.cmo stdLabels.cmo
+
+STDLIB_OTHERS:=$(addprefix $(STDLIB_DIR)/,$(STDLIB_OTHERS))
+
+STDLIB_OBJS=$(STDLIB_DIR)/camlinternalFormatBasics.cmo $(STDLIB_DIR)/pervasives.cmo $(STDLIB_OTHERS)
+
+$(STDLIB_DIR)/stdlib.cma: $(STDLIB_OBJS)
+	$(BOOT_OCAMLC) -a -o $@ $^
+
+$(STDLIB_DIR)/stdlib.cmxa: $(STDLIB_OBJS:.cmo=.cmx)
+	$(FIRST_OCAMLOPT) -a -o $@ $^
+
+$(STDLIB_CMI): $(STDLIB_OBJS:%.cmo=%.cmi)
+	touch $@
+
+$(STDLIB_BYTE): \
+	 $(addprefix $(STDLIB_DIR)/,stdlib.cma std_exit.cmo  camlheader camlheaderd camlheader_ur) \
+	 $(STDLIB_OBJS:%.cmo=%.cmi)
+	touch $@
+
+$(STDLIB_OPT): $(STDLIB_DIR)/stdlib.cmxa $(STDLIB_DIR)/std_exit.cmx $(STDLIB_OBJS:%.cmo=%.cmi)
+	touch $@
+
+SPECIFIC_COMPFLAGS=$(STDLIB_DIR)/Compflags
+
+$(STDLIB_DIR)/%.cmi: $(STDLIB_DIR)/%.mli $(SPECIFIC_COMPFLAGS) $(BOOT_OCAMLC)
+	$(BOOT_OCAMLC) $(COMPFLAGS) `$(SPECIFIC_COMPFLAGS) $@` -I $(STDLIB_DIR) -o $@ -c $<
+
+$(STDLIB_DIR)/%.cmo: $(STDLIB_DIR)/%.ml $(SPECIFIC_COMPFLAGS) $(BOOT_OCAMLC)
+	$(BOOT_OCAMLC) $(COMPFLAGS) `$(SPECIFIC_COMPFLAGS) $@` -I $(STDLIB_DIR) -o $@ -c $<
+
+$(STDLIB_DIR)/%.cmx: $(STDLIB_DIR)/%.ml $(SPECIFIC_COMPFLAGS) $(FIRST_OCAMLOPT)
+	$(FIRST_OCAMLOPT) $(OPTCOMPFLAGS) `$(SPECIFIC_COMPFLAGS) $@` -I $(STDLIB_DIR) -o $@ -c $<
+
+$(STDLIB_DIR)/%.p.cmx: $(STDLIB_DIR)/%.ml $(SPECIFIC_COMPFLAGS) $(FIRST_OCAMLOPT)
+	$(FIRST_OCAMLOPT) $(OPTCOMPFLAGS) `$(SPECIFIC_COMPFLAGS) $@` -I $(STDLIB_DIR) -p -c -o $@ $<
+
+# Dependencies on Pervasives (not tracked by ocamldep)
+$(STDLIB_OTHERS:.cmo=.cmo) $(STDLIB_DIR)/std_exit.cmo $(STDLIB_OTHERS:.cmo=.cmi) $(STDLIB_DIR)/std_exit.cmi: $(STDLIB_DIR)/pervasives.cmi
+$(STDLIB_OTHERS:.cmo=.cmx) $(STDLIB_DIR)/std_exit.cmx $(STDLIB_OTHERS:.cmo=.p.cmx) $(STDLIB_DIR)/std_exit.p.cmx: $(STDLIB_DIR)/pervasives.cmi $(STDLIB_DIR)/pervasives.cmx
+
+clean::
+	rm -f $(STDLIB_DIR)/*.cm* $(STDLIB_DIR)/*.$(O) $(STDLIB_DIR)/*.$(A)
+	rm -f $(STDLIB_BYTE) $(STDLIB_OPT) $(STDLIB_CMI)
+
+include $(STDLIB_DIR)/.depend
+
+.PHONY: $(STDLIB_DIR)/depend
+
+$(STDLIB_DIR)/depend: $(STDLIB_DIR)/sys.ml $(BOOT_OCAMLDEP)
+	$(BOOT_OCAMLDEP) -I $(STDLIB_DIR) $(STDLIB_DIR)/*.mli $(STDLIB_DIR)/*.ml > $(STDLIB_DIR)/.depend
+	$(BOOT_OCAMLDEP) -I $(STDLIB_DIR) $(STDLIB_DIR)/*.ml | sed -e 's/\.cmx/.p.cmx/g' >> $(STDLIB_DIR)/.depend
+
+depend:: $(STDLIB_DIR)/depend

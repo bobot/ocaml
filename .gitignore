@@ -2757,3 +2757,9 @@
 /yacc/ocamlyacc.exe
 /yacc/version.h
 /yacc/.gdb_history
+
+
+#Added directly to .gitignore
+/config/version.h
+*.c.depend
+*.stamp

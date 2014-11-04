@@ -19,7 +19,7 @@
 #include <unistd.h>
 #endif
 
-#include "version.h"
+#include "../config/version.h"
 
 char dflag;
 char lflag;
@@ -187,10 +187,10 @@ void getargs(int argc, char **argv)
         case 'v':
             if (!strcmp (argv[i], "-version")){
               printf ("The OCaml parser generator, version "
-                      OCAML_VERSION "\n");
+                      OCAML_VERSION_STRING "\n");
               exit (0);
             }else if (!strcmp (argv[i], "-vnum")){
-              printf (OCAML_VERSION "\n");
+              printf (OCAML_VERSION_STRING "\n");
               exit (0);
             }else{
               vflag = 1;
