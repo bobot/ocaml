@@ -38,49 +38,6 @@ byterun/interp.pic.o: byterun/interp.c byterun/alloc.h \
  byterun/interp.h byterun/major_gc.h byterun/freelist.h byterun/memory.h \
  byterun/gc.h byterun/minor_gc.h byterun/prims.h byterun/signals.h \
  byterun/stacks.h byterun/jumptbl.h
-byterun/misc.o: byterun/misc.c byterun/config.h config/m.h \
- config/s.h byterun/compatibility.h byterun/misc.h \
- byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/major_gc.h \
- byterun/freelist.h byterun/minor_gc.h
-byterun/misc.o: byterun/misc.c byterun/config.h config/m.h \
- config/s.h byterun/compatibility.h byterun/misc.h \
- byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/major_gc.h \
- byterun/freelist.h byterun/minor_gc.h
-byterun/misc.d.o: byterun/misc.c byterun/config.h config/m.h \
- config/s.h byterun/compatibility.h byterun/misc.h \
- byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/major_gc.h \
- byterun/freelist.h byterun/minor_gc.h
-byterun/misc.pic.o: byterun/misc.c byterun/config.h config/m.h \
- config/s.h byterun/compatibility.h byterun/misc.h \
- byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/major_gc.h \
- byterun/freelist.h byterun/minor_gc.h
-byterun/misc.pic.o: byterun/misc.c byterun/config.h config/m.h \
- config/s.h byterun/compatibility.h byterun/misc.h \
- byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/major_gc.h \
- byterun/freelist.h byterun/minor_gc.h
-byterun/stacks.o: byterun/stacks.c byterun/config.h config/m.h \
- config/s.h byterun/compatibility.h byterun/fail.h \
- byterun/misc.h byterun/mlvalues.h byterun/stacks.h byterun/memory.h \
- byterun/gc.h byterun/major_gc.h byterun/freelist.h byterun/minor_gc.h
-byterun/stacks.o: byterun/stacks.c byterun/config.h config/m.h \
- config/s.h byterun/compatibility.h byterun/fail.h \
- byterun/misc.h byterun/mlvalues.h byterun/stacks.h byterun/memory.h \
- byterun/gc.h byterun/major_gc.h byterun/freelist.h byterun/minor_gc.h
-byterun/stacks.d.o: byterun/stacks.c byterun/config.h \
- config/m.h config/s.h byterun/compatibility.h \
- byterun/fail.h byterun/misc.h byterun/mlvalues.h byterun/stacks.h \
- byterun/memory.h byterun/gc.h byterun/major_gc.h byterun/freelist.h \
- byterun/minor_gc.h
-byterun/stacks.pic.o: byterun/stacks.c byterun/config.h \
- config/m.h config/s.h byterun/compatibility.h \
- byterun/fail.h byterun/misc.h byterun/mlvalues.h byterun/stacks.h \
- byterun/memory.h byterun/gc.h byterun/major_gc.h byterun/freelist.h \
- byterun/minor_gc.h
-byterun/stacks.pic.o: byterun/stacks.c byterun/config.h \
- config/m.h config/s.h byterun/compatibility.h \
- byterun/fail.h byterun/misc.h byterun/mlvalues.h byterun/stacks.h \
- byterun/memory.h byterun/gc.h byterun/major_gc.h byterun/freelist.h \
- byterun/minor_gc.h
 byterun/fix_code.o: byterun/fix_code.c byterun/config.h \
  config/m.h config/s.h byterun/compatibility.h \
  byterun/debugger.h byterun/misc.h byterun/mlvalues.h byterun/fix_code.h \
@@ -111,6 +68,74 @@ byterun/fix_code.pic.o: byterun/fix_code.c byterun/config.h \
  byterun/instruct.h byterun/intext.h byterun/io.h byterun/md5.h \
  byterun/memory.h byterun/gc.h byterun/major_gc.h byterun/freelist.h \
  byterun/minor_gc.h byterun/reverse.h
+byterun/signals_byt.o: byterun/signals_byt.c byterun/config.h \
+ config/m.h config/s.h byterun/compatibility.h \
+ byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/misc.h \
+ byterun/major_gc.h byterun/freelist.h byterun/minor_gc.h \
+ byterun/osdeps.h byterun/signals.h byterun/signals_machdep.h
+byterun/signals_byt.o: byterun/signals_byt.c byterun/config.h \
+ config/m.h config/s.h byterun/compatibility.h \
+ byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/misc.h \
+ byterun/major_gc.h byterun/freelist.h byterun/minor_gc.h \
+ byterun/osdeps.h byterun/signals.h byterun/signals_machdep.h
+byterun/signals_byt.d.o: byterun/signals_byt.c byterun/config.h \
+ config/m.h config/s.h byterun/compatibility.h \
+ byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/misc.h \
+ byterun/major_gc.h byterun/freelist.h byterun/minor_gc.h \
+ byterun/osdeps.h byterun/signals.h byterun/signals_machdep.h
+byterun/signals_byt.pic.o: byterun/signals_byt.c byterun/config.h \
+ config/m.h config/s.h byterun/compatibility.h \
+ byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/misc.h \
+ byterun/major_gc.h byterun/freelist.h byterun/minor_gc.h \
+ byterun/osdeps.h byterun/signals.h byterun/signals_machdep.h
+byterun/signals_byt.pic.o: byterun/signals_byt.c byterun/config.h \
+ config/m.h config/s.h byterun/compatibility.h \
+ byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/misc.h \
+ byterun/major_gc.h byterun/freelist.h byterun/minor_gc.h \
+ byterun/osdeps.h byterun/signals.h byterun/signals_machdep.h
+byterun/stacks.o: byterun/stacks.c byterun/config.h config/m.h \
+ config/s.h byterun/compatibility.h byterun/fail.h \
+ byterun/misc.h byterun/mlvalues.h byterun/stacks.h byterun/memory.h \
+ byterun/gc.h byterun/major_gc.h byterun/freelist.h byterun/minor_gc.h
+byterun/stacks.o: byterun/stacks.c byterun/config.h config/m.h \
+ config/s.h byterun/compatibility.h byterun/fail.h \
+ byterun/misc.h byterun/mlvalues.h byterun/stacks.h byterun/memory.h \
+ byterun/gc.h byterun/major_gc.h byterun/freelist.h byterun/minor_gc.h
+byterun/stacks.d.o: byterun/stacks.c byterun/config.h \
+ config/m.h config/s.h byterun/compatibility.h \
+ byterun/fail.h byterun/misc.h byterun/mlvalues.h byterun/stacks.h \
+ byterun/memory.h byterun/gc.h byterun/major_gc.h byterun/freelist.h \
+ byterun/minor_gc.h
+byterun/stacks.pic.o: byterun/stacks.c byterun/config.h \
+ config/m.h config/s.h byterun/compatibility.h \
+ byterun/fail.h byterun/misc.h byterun/mlvalues.h byterun/stacks.h \
+ byterun/memory.h byterun/gc.h byterun/major_gc.h byterun/freelist.h \
+ byterun/minor_gc.h
+byterun/stacks.pic.o: byterun/stacks.c byterun/config.h \
+ config/m.h config/s.h byterun/compatibility.h \
+ byterun/fail.h byterun/misc.h byterun/mlvalues.h byterun/stacks.h \
+ byterun/memory.h byterun/gc.h byterun/major_gc.h byterun/freelist.h \
+ byterun/minor_gc.h
+byterun/misc.o: byterun/misc.c byterun/config.h config/m.h \
+ config/s.h byterun/compatibility.h byterun/misc.h \
+ byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/major_gc.h \
+ byterun/freelist.h byterun/minor_gc.h
+byterun/misc.o: byterun/misc.c byterun/config.h config/m.h \
+ config/s.h byterun/compatibility.h byterun/misc.h \
+ byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/major_gc.h \
+ byterun/freelist.h byterun/minor_gc.h
+byterun/misc.d.o: byterun/misc.c byterun/config.h config/m.h \
+ config/s.h byterun/compatibility.h byterun/misc.h \
+ byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/major_gc.h \
+ byterun/freelist.h byterun/minor_gc.h
+byterun/misc.pic.o: byterun/misc.c byterun/config.h config/m.h \
+ config/s.h byterun/compatibility.h byterun/misc.h \
+ byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/major_gc.h \
+ byterun/freelist.h byterun/minor_gc.h
+byterun/misc.pic.o: byterun/misc.c byterun/config.h config/m.h \
+ config/s.h byterun/compatibility.h byterun/misc.h \
+ byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/major_gc.h \
+ byterun/freelist.h byterun/minor_gc.h
 byterun/startup.o: byterun/startup.c byterun/config.h \
  config/m.h config/s.h byterun/compatibility.h \
  byterun/alloc.h byterun/misc.h byterun/mlvalues.h byterun/backtrace.h \
@@ -398,31 +423,6 @@ byterun/signals.pic.o: byterun/signals.c byterun/alloc.h \
  byterun/callback.h byterun/fail.h byterun/memory.h byterun/gc.h \
  byterun/major_gc.h byterun/freelist.h byterun/minor_gc.h byterun/roots.h \
  byterun/signals.h byterun/signals_machdep.h byterun/sys.h
-byterun/signals_byt.o: byterun/signals_byt.c byterun/config.h \
- config/m.h config/s.h byterun/compatibility.h \
- byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/misc.h \
- byterun/major_gc.h byterun/freelist.h byterun/minor_gc.h \
- byterun/osdeps.h byterun/signals.h byterun/signals_machdep.h
-byterun/signals_byt.o: byterun/signals_byt.c byterun/config.h \
- config/m.h config/s.h byterun/compatibility.h \
- byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/misc.h \
- byterun/major_gc.h byterun/freelist.h byterun/minor_gc.h \
- byterun/osdeps.h byterun/signals.h byterun/signals_machdep.h
-byterun/signals_byt.d.o: byterun/signals_byt.c byterun/config.h \
- config/m.h config/s.h byterun/compatibility.h \
- byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/misc.h \
- byterun/major_gc.h byterun/freelist.h byterun/minor_gc.h \
- byterun/osdeps.h byterun/signals.h byterun/signals_machdep.h
-byterun/signals_byt.pic.o: byterun/signals_byt.c byterun/config.h \
- config/m.h config/s.h byterun/compatibility.h \
- byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/misc.h \
- byterun/major_gc.h byterun/freelist.h byterun/minor_gc.h \
- byterun/osdeps.h byterun/signals.h byterun/signals_machdep.h
-byterun/signals_byt.pic.o: byterun/signals_byt.c byterun/config.h \
- config/m.h config/s.h byterun/compatibility.h \
- byterun/memory.h byterun/gc.h byterun/mlvalues.h byterun/misc.h \
- byterun/major_gc.h byterun/freelist.h byterun/minor_gc.h \
- byterun/osdeps.h byterun/signals.h byterun/signals_machdep.h
 byterun/printexc.o: byterun/printexc.c byterun/backtrace.h \
  byterun/mlvalues.h byterun/compatibility.h byterun/config.h \
  config/m.h config/s.h byterun/misc.h \
@@ -711,31 +711,31 @@ byterun/sys.o: byterun/sys.c byterun/config.h config/m.h \
  byterun/misc.h byterun/mlvalues.h byterun/debugger.h byterun/fail.h \
  byterun/instruct.h byterun/osdeps.h byterun/signals.h byterun/stacks.h \
  byterun/memory.h byterun/gc.h byterun/major_gc.h byterun/freelist.h \
- byterun/minor_gc.h byterun/sys.h
+ byterun/minor_gc.h byterun/sys.h byterun/gc_ctrl.h
 byterun/sys.o: byterun/sys.c byterun/config.h config/m.h \
  config/s.h byterun/compatibility.h byterun/alloc.h \
  byterun/misc.h byterun/mlvalues.h byterun/debugger.h byterun/fail.h \
  byterun/instruct.h byterun/osdeps.h byterun/signals.h byterun/stacks.h \
  byterun/memory.h byterun/gc.h byterun/major_gc.h byterun/freelist.h \
- byterun/minor_gc.h byterun/sys.h
+ byterun/minor_gc.h byterun/sys.h byterun/gc_ctrl.h
 byterun/sys.d.o: byterun/sys.c byterun/config.h config/m.h \
  config/s.h byterun/compatibility.h byterun/alloc.h \
  byterun/misc.h byterun/mlvalues.h byterun/debugger.h byterun/fail.h \
  byterun/instruct.h byterun/osdeps.h byterun/signals.h byterun/stacks.h \
  byterun/memory.h byterun/gc.h byterun/major_gc.h byterun/freelist.h \
- byterun/minor_gc.h byterun/sys.h
+ byterun/minor_gc.h byterun/sys.h byterun/gc_ctrl.h
 byterun/sys.pic.o: byterun/sys.c byterun/config.h config/m.h \
  config/s.h byterun/compatibility.h byterun/alloc.h \
  byterun/misc.h byterun/mlvalues.h byterun/debugger.h byterun/fail.h \
  byterun/instruct.h byterun/osdeps.h byterun/signals.h byterun/stacks.h \
  byterun/memory.h byterun/gc.h byterun/major_gc.h byterun/freelist.h \
- byterun/minor_gc.h byterun/sys.h
+ byterun/minor_gc.h byterun/sys.h byterun/gc_ctrl.h
 byterun/sys.pic.o: byterun/sys.c byterun/config.h config/m.h \
  config/s.h byterun/compatibility.h byterun/alloc.h \
  byterun/misc.h byterun/mlvalues.h byterun/debugger.h byterun/fail.h \
  byterun/instruct.h byterun/osdeps.h byterun/signals.h byterun/stacks.h \
  byterun/memory.h byterun/gc.h byterun/major_gc.h byterun/freelist.h \
- byterun/minor_gc.h byterun/sys.h
+ byterun/minor_gc.h byterun/sys.h byterun/gc_ctrl.h
 byterun/meta.o: byterun/meta.c byterun/alloc.h byterun/compatibility.h \
  byterun/misc.h byterun/config.h config/m.h \
  config/s.h byterun/mlvalues.h byterun/fail.h \

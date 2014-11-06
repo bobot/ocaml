@@ -19,6 +19,7 @@ CC=$(BYTECC)
 
 BOOT_DIR=boot
 BYTERUN_DIR=byterun
+ASMRUN_DIR=asmrun
 YACC_DIR=yacc
 STDLIB_DIR=stdlib
 STDLIB_CMI=$(STDLIB_DIR)/stdlib.cmi.stamp
@@ -47,7 +48,7 @@ LINKFLAGS=-nostdlib
 YACCFLAGS=-v
 
 #temporary
-all: stdlib/stdlib.cma stdlib/stdlib.cmxa $(OCAMLYACC)
+all: ocamlopt.opt ocamlc.opt
 
 # Run all tests
 
@@ -60,6 +61,8 @@ tests: byte opt
 .PHONY: force
 
 include Makefile.byterun
+
+include Makefile.asmrun
 
 include Makefile.stdlib
 

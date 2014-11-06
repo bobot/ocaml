@@ -1,0 +1,110 @@
+#########################################################################
+#                                                                       #
+#                                 OCaml                                 #
+#                                                                       #
+#            Xavier Leroy, projet Cristal, INRIA Rocquencourt           #
+#                                                                       #
+#   Copyright 1999 Institut National de Recherche en Informatique et    #
+#   en Automatique.  All rights reserved.  This file is distributed     #
+#   under the terms of the GNU Library General Public License, with     #
+#   the special exception on linking described in file ../LICENSE.      #
+#                                                                       #
+#########################################################################
+
+ASMRUN_FLAGS=-I byterun -DCAML_NAME_SPACE -DNATIVE_CODE \
+      -DTARGET_$(ARCH) -DSYS_$(SYSTEM) $(IFLEXDIR)
+ASMRUN_CFLAGS=$(ASMRUN_FLAGS) -O $(NATIVECCCOMPOPTS)
+ASMRUN_DFLAGS=$(ASMRUN_FLAGS) -g -DDEBUG $(NATIVECCCOMPOPTS)
+ASMRUN_PFLAGS=$(ASMRUN_FLAGS) -pg -O -DPROFILING $(NATIVECCPROFOPTS)
+
+ASMRUN_COMMONOBJS:= main.o natdynlink.o signals_asm.o $(UNIX_OR_WIN32).o $(RUNTIME_OBJS)
+ASMRUN_COMMONOBJS:=$(addprefix $(ASMRUN_DIR)/, $(ASMRUN_COMMONOBJS))
+
+ASMOBJS=$(ASMRUN_DIR)/$(ARCH).o
+
+ASMRUN_OBJS=$(ASMRUN_COMMONOBJS) $(ASMOBJS)
+ASMRUN_DOBJS=$(ASMRUN_COMMONOBJS:.o=.d.o) $(ASMOBJS)
+ASMRUN_POBJS=$(ASMRUN_COMMONOBJS:.o=.p.o) $(ASMOBJS:.o=.p.o)
+
+$(ASMRUN_DIR)/%.o: $(ASMRUN_DIR)/%.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c $(OUTPUT_OPTION) $(ASMRUN_CFLAGS) $<
+
+$(ASMRUN_DIR)/%.c: $(BYTERUN_DIR)/%.c
+	ln -s ../$< $@
+
+$(addprefix $(ASMRUN_DIR)/,startup.c roots.c fail.c backtrace.c):
+	@echo -n
+
+
+$(ASMRUN_DIR)/libasmrun.a: $(ASMRUN_OBJS)
+$(ASMRUN_DIR)/libasmrund.a: $(ASMRUN_DOBJS)
+$(ASMRUN_DIR)/libasmrunp.a: $(ASMRUN_POBJS)
+
+$(ASMRUN_DIR)/lib%.a:
+	rm -f $@.tmp
+	ar rc $@.tmp $^
+	$(RANLIB) $@.tmp
+	mv $@.tmp $@
+
+$(ASMRUN_DIR)/power-bsd_elf.S: $(ASMRUN_DIR)/power-elf.S
+	cp $< $@
+
+$(ASMRUN_DIR)/power.o: $(ASMRUN_DIR)/power-$(SYSTEM).o
+	cp $< $@
+
+$(ASMRUN_DIR)/power.p.o: $(ASMRUN_DIR)/power-$(SYSTEM).o
+	cp $< $@
+
+clean::
+	rm -f $(addprefix $(ASMRUN_DIR)/, $(RUNTIME_OBJ:.o=.c))
+
+%.o: %S
+	$(ASPP) -DSYS_$(SYSTEM) -DMODEL_$(MODEL) -o $*.o $*.S || \
+	{ echo "If your assembler produced syntax errors, it is probably";\
+          echo "unhappy with the preprocessor. Check your assembler, or";\
+          echo "try producing $*.o by hand.";\
+          exit 2; }
+
+%.p.o: %.S
+	$(ASPP) -DSYS_$(SYSTEM) -DMODEL_$(MODEL) $(ASPPPROFFLAGS) -o $*.p.o $*.S
+
+$(ASMRUN_DIR)/%.d.o: $(ASMRUN_DIR)/%.c
+	ln -s -f $*.c $(ASMRUN_DIR)/$*.d.c
+	$(CC) -c $(DFLAGS) $(ASMRUN_DIR)/$*.d.c
+	rm -f $(ASMRUN_DIR)/$*.d.c
+
+$(ASMRUN_DIR)/%.p.o: $(ASMRUN_DIR)/%.c
+	ln -s -f $*.c $(ASMRUN_DIR)/$*.p.c
+	$(CC) -c $(PFLAGS) $(ASMRUN_DIR)/$*.p.c
+	rm -f $(ASMRUN_DIR)/$*.p.c
+
+%.o: %.s
+	$(ASPP) -DSYS_$(SYSTEM) -o $*.o $*.s
+
+%.p.o: %.s
+	$(ASPP) -DSYS_$(SYSTEM) $(ASPPPROFFLAGS) -o $*.p.o $*.s
+
+clean::
+	rm -f *.o *.a *~
+
+.PHONY: asmrun/depend
+
+$(ASMRUN_DIR)/%.c.depend : $(ASMRUN_DIR)/%.c $(VERSION_H)
+	-gcc -MM $(ASMRUN_FLAGS) $< -MT "$(ASMRUN_DIR)/$*.o" $< > $@.tmp
+	-gcc -MM $(ASMRUN_FLAGS)  -DDEBUG -MT "$(ASMRUN_DIR)/$*.d.o" $< >> $@.tmp
+	-gcc -MM $(ASMRUN_FLAGS) $< -MT "$(ASMRUN_DIR)/$*.pic.o" $< >> $@.tmp
+	sed $@.tmp -e "s&$(ASMRUN_DIR)/../&&g" > $@
+	rm -f $@.tmp
+
+$(ASMRUN_DIR)/depend : $(ASMRUN_COMMONOBJS:.o=.c.depend)
+	cat $^ > $(ASMRUN_DIR)/.depend
+
+
+# asmrun/depend: $(ASMRUN_COMMONOBJS:.o=.c)
+# 	-gcc -MM $(ASMRUN_FLAGS) $(ASMRUN_DIR)/*.c > $(ASMRUN_DIR)/.depend
+# 	gcc -MM $(ASMRUN_FLAGS) -DDEBUG $(ASMRUN_DIR)/*.c | sed -e 's/\.o/.d.o/' >> $(ASMRUN_DIR)/.depend
+# 	gcc -MM $(ASMRUN_FLAGS) -DDEBUG $(ASMRUN_DIR)/*.c | sed -e 's/\.o/.p.o/' >> $(ASMRUN_DIR)/.depend
+
+depend:: asmrun/depend
+
+include $(ASMRUN_DIR)/.depend

@@ -66,7 +66,7 @@ ASMCOMP=asmcomp/arch.cmo asmcomp/debuginfo.cmo \
   asmcomp/asmlink.cmo asmcomp/asmlibrarian.cmo asmcomp/asmpackager.cmo \
   driver/opterrors.cmo driver/optcompile.cmo
 
-ARCHSPECIFIC=$(addprefix asmcomp/,arch.ml emit.mlp proc.ml reload.ml scheduling.ml selection.ml)
+ARCHSPECIFIC=$(addprefix asmcomp/,arch.ml CSE.ml emit.ml proc.ml reload.ml scheduling.ml selection.ml)
 
 BYTESTART=driver/main.cmo
 
@@ -81,10 +81,24 @@ compilerlibs/ocamlbytecomp.cma: $(BYTECOMP)
 compilerlibs/ocamloptcomp.cma: $(ASMCOMP)
 	$(BOOT_OCAMLC) -a -o $@ $^
 
+compilerlibs/ocamlcommon.cmxa: $(COMPILER_COMMON:.cmo=.cmx)
+	$(FIRST_OCAMLOPT) -a -o $@ $^
+
+compilerlibs/ocamlbytecomp.cmxa: $(BYTECOMP:.cmo=.cmx)
+	$(FIRST_OCAMLOPT) -a -o $@ $^
+
+compilerlibs/ocamloptcomp.cmxa: $(ASMCOMP:.cmo=.cmx)
+	$(FIRST_OCAMLOPT) -a -o $@ $^
+
 $(FIRST_OCAMLOPT_LOC): compilerlibs/ocamlcommon.cma compilerlibs/ocamloptcomp.cma $(OPTSTART) \
 		$(BOOT_OCAMLC) $(STDLIB_BYTE)
 	$(BOOT_OCAMLC) $(LINKFLAGS) -I stdlib -o $@\
 		compilerlibs/ocamlcommon.cma compilerlibs/ocamloptcomp.cma $(OPTSTART)
+
+$(FIRST_OCAMLOPT_LOC).opt: compilerlibs/ocamlcommon.cmxa compilerlibs/ocamloptcomp.cmxa $(OPTSTART:.cmo=.cmx) \
+		$(FIRST_OCAMLOPT) $(ASMRUN_DIR)/libasmrun.a $(STDLIB_OPT)
+	$(FIRST_OCAMLOPT) $(LINKFLAGS) -I stdlib -I asmrun -o $@\
+		compilerlibs/ocamlcommon.cmxa compilerlibs/ocamloptcomp.cmxa $(OPTSTART:.cmo=.cmx)
 
 ocamlcompopt.sh: driver/ocamlcomp.sh.in $(FIRST_OCAMLOPT)
 	@sed -e 's|@compiler@|$$topdir/boot/ocamlrun $$topdir/ocamlopt|' $< > $@.tmp
@@ -96,6 +110,11 @@ $(FIRST_OCAMLC_LOC): compilerlibs/ocamlcommon.cma compilerlibs/ocamlbytecomp.cma
 	$(BOOT_OCAMLC) $(LINKFLAGS) -I stdlib -o $@ \
 		compilerlibs/ocamlcommon.cma compilerlibs/ocamlbytecomp.cma $(BYTESTART)
 
+$(FIRST_OCAMLC_LOC).opt: compilerlibs/ocamlcommon.cmxa compilerlibs/ocamlbytecomp.cmxa $(BYTESTART:.cmo=.cmx) \
+		$(FIRST_OCAMLOPT) $(ASMRUN_DIR)/libasmrun.a $(STDLIB_OPT)
+	$(FIRST_OCAMLOPT) $(LINKFLAGS) -I stdlib -I asmrun -o $@\
+		compilerlibs/ocamlcommon.cmxa compilerlibs/ocamlbytecomp.cmxa $(BYTESTART:.cmo=.cmx)
+
 ocamlcomp.sh: driver/ocamlcomp.sh.in $(FIRST_OCAMLC)
 	@sed -e 's|@compiler@|$$topdir/boot/ocamlrun $$topdir/ocamlc|' $< > $@.tmp
 	@chmod +x $@.tmp
@@ -105,11 +124,17 @@ ocamlcomp.sh: driver/ocamlcomp.sh.in $(FIRST_OCAMLC)
 %.cmi: %.mli $(BOOT_OCAMLC) $(STDLIB_CMI)
 	$(BOOT_OCAMLC) -I $(STDLIB_DIR) $(COMPFLAGS) $(COMPILER_INCLUDES) -o $@ -c $<
 
-%.cmo: %.ml $(BOOT_OCAMLC) $(STDLIB_BYTE)
+%.cmo: %.ml %.mli %.cmi $(BOOT_OCAMLC) $(STDLIB_BYTE)
 	$(BOOT_OCAMLC) -I $(STDLIB_DIR) $(COMPFLAGS) $(COMPILER_INCLUDES) -o $@ -c $<
 
-%.cmx: %.ml $(SPECIFIC_COMPFLAGS) $(BOOT_OCAMLOPT) $(STDLIB_OPT)
-	$(BOOT_OCAMLOPT) -I $(STDLIB_DIR) $(OPTCOMPFLAGS) $(COMPILER_INCLUDES) -o $@ -c $<
+%.cmo %.cmi: %.ml $(BOOT_OCAMLC) $(STDLIB_BYTE)
+	$(BOOT_OCAMLC) -I $(STDLIB_DIR) $(COMPFLAGS) $(COMPILER_INCLUDES) -o $@ -c $<
+
+%.cmx: %.ml %.mli %.cmi $(SPECIFIC_COMPFLAGS) $(FIRST_OCAMLOPT) $(STDLIB_OPT)
+	$(FIRST_OCAMLOPT) -I $(STDLIB_DIR) $(OPTCOMPFLAGS) $(COMPILER_INCLUDES) -o $@ -c $<
+
+%.cmx: %.ml %.cmi $(SPECIFIC_COMPFLAGS) $(FIRST_OCAMLOPT) $(STDLIB_OPT)
+	$(FIRST_OCAMLOPT) -I $(STDLIB_DIR) $(OPTCOMPFLAGS) $(COMPILER_INCLUDES) -o $@ -c $<
 
 parsing/parser.mli parsing/parser.ml: parsing/parser.mly $(OCAMLYACC)
 	$(OCAMLYACC) $(YACCFLAGS) $<
