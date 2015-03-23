@@ -16,6 +16,12 @@
 #ifndef CAML_STACK_H
 #define CAML_STACK_H
 
+#ifdef __GNUC__
+#define INLINE inline
+#else
+#define INLINE
+#endif
+
 /* Macros to access the stack frame */
 
 #ifdef TARGET_sparc
@@ -94,6 +100,11 @@ extern int caml_frame_descriptors_mask;
 extern void caml_init_frame_descriptors(void);
 extern void caml_register_frametable(intnat *);
 extern void caml_register_dyn_global(void *);
+
+static INLINE void caml_update_frame_descriptors_if_needed(void){
+  if (caml_frame_descr_state != FRAME_DESCR_UPTODATE)
+    caml_init_frame_descriptors();
+};
 
 extern uintnat caml_stack_usage (void);
 extern uintnat (*caml_stack_usage_hook)(void);

@@ -213,8 +213,7 @@ void caml_oldify_local_roots (void)
   }
 
   /* The stack and local roots */
-  if (caml_frame_descr_state != FRAME_DESCR_UPTODATE)
-    caml_init_frame_descriptors();
+  caml_update_frame_descriptors_if_needed();
   sp = caml_bottom_of_stack;
   retaddr = caml_last_return_address;
   regs = caml_gc_regs;
@@ -309,8 +308,7 @@ void caml_do_roots (scanning_action f)
   }
 
   /* The stack and local roots */
-  if (caml_frame_descr_state != FRAME_DESCR_UPTODATE)
-      caml_init_frame_descriptors();
+  caml_update_frame_descriptors_if_needed();
   caml_do_local_roots(f, caml_bottom_of_stack, caml_last_return_address,
                       caml_gc_regs, caml_local_roots);
   /* Global C roots */
