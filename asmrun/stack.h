@@ -79,7 +79,12 @@ typedef struct {
 } frame_descr;
 
 /* Hash table of frame descriptors */
-
+enum frame_descr_state {
+  FRAME_DESCR_TOINIT,
+  FRAME_DESCR_UPTODATE,
+  FRAME_DESCR_TOUPDATE,
+};
+extern enum frame_descr_state caml_frame_descr_state;
 extern frame_descr ** caml_frame_descriptors;
 extern int caml_frame_descriptors_mask;
 

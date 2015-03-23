@@ -33,9 +33,14 @@ void (*caml_scan_roots_hook) (scanning_action) = NULL;
 
 /* The hashtable of frame descriptors */
 /* Invariant:
-   either caml_frame_descriptors or caml_old_frame_descriptors is NULL */
+   FRAME_DESCR_TOINIT:   caml_frame_descriptors == NULL;
+   FRAME_DESCR_UPTODATE: all frametables are in the hashtable
+                         caml_frame_descriptors.
+   FRAME_DESCR_TOUPDATE: the frametables in registered_frametables
+                         are not in the hashtable
+ */
+enum frame_descr_state caml_frame_descr_state = FRAME_DESCR_TOINIT;
 frame_descr ** caml_frame_descriptors = NULL;
-frame_descr ** caml_old_frame_descriptors = NULL;
 int caml_frame_descriptors_mask = 0;
 
 /* Linked-list */
@@ -57,15 +62,16 @@ static link *cons(void *data, link *tl) {
 
 /* Linked-list of frametables */
 
+/* All the frametables already in the hashtbl caml_frame_descriptors */
 static link *frametables = NULL;
+/* Frametables to add in the hashtbl caml_frame_descriptors */
 static link *registered_frametables = NULL;
 
 void caml_register_frametable(intnat *table) {
   registered_frametables = cons(table,registered_frametables);
 
-  if (NULL != caml_frame_descriptors) {
-    caml_old_frame_descriptors = caml_frame_descriptors;
-    caml_frame_descriptors = NULL;
+  if (caml_frame_descr_state == FRAME_DESCR_UPTODATE) {
+    caml_frame_descr_state = FRAME_DESCR_TOUPDATE;
     /* force caml_init_frame_descriptors to be called */
   }
 }
@@ -80,17 +86,19 @@ void caml_init_frame_descriptors(void)
   link *lnk;
   link *registered_frametables_tail;
 
-  static int inited = 0;
   static intnat num_descr = 0;
 
-  Assert(!inited || caml_old_frame_descriptors);
+  Assert(caml_frame_descr_state != FRAME_DESCR_UPTODATE);
+  Assert(caml_frame_descr_state == FRAME_DESCR_TOINIT
+         || caml_frame_descriptors != NULL);
 
-  if (!inited) {
+  if (caml_frame_descr_state == FRAME_DESCR_TOINIT) {
     for (i = 0; caml_frametable[i] != 0; i++)
       caml_register_frametable(caml_frametable[i]);
-    inited = 1;
+    caml_frame_descr_state = FRAME_DESCR_TOUPDATE;
   }
 
+  Assert(caml_frame_descr_state == FRAME_DESCR_TOUPDATE);
   Assert(registered_frametables);
 
   /* Count the frame descriptors */
@@ -113,8 +121,7 @@ void caml_init_frame_descriptors(void)
     while (tblsize < 2 * num_descr) tblsize *= 2;
 
     /* Re-allocate the hash table */
-    if(caml_old_frame_descriptors) caml_stat_free(caml_old_frame_descriptors);
-    caml_old_frame_descriptors = NULL;
+    if(caml_frame_descriptors) caml_stat_free(caml_frame_descriptors);
     caml_frame_descriptors =
       (frame_descr **) caml_stat_alloc(tblsize * sizeof(frame_descr *));
     for (i = 0; i < tblsize; i++) caml_frame_descriptors[i] = NULL;
@@ -123,9 +130,6 @@ void caml_init_frame_descriptors(void)
     /* mark everything for update */
     registered_frametables_tail->next = frametables;
     frametables = NULL;
-  } else {
-    caml_frame_descriptors = caml_old_frame_descriptors;
-    caml_old_frame_descriptors = NULL;
   }
 
   /* Fill the hash table */
@@ -152,6 +156,7 @@ void caml_init_frame_descriptors(void)
   registered_frametables_tail->next = frametables;
   frametables = registered_frametables;
   registered_frametables = NULL;
+  caml_frame_descr_state = FRAME_DESCR_UPTODATE;
 }
 
 /* Communication with [caml_start_program] and [caml_call_gc]. */
@@ -208,7 +213,8 @@ void caml_oldify_local_roots (void)
   }
 
   /* The stack and local roots */
-  if (caml_frame_descriptors == NULL) caml_init_frame_descriptors();
+  if (caml_frame_descr_state != FRAME_DESCR_UPTODATE)
+    caml_init_frame_descriptors();
   sp = caml_bottom_of_stack;
   retaddr = caml_last_return_address;
   regs = caml_gc_regs;
@@ -303,7 +309,8 @@ void caml_do_roots (scanning_action f)
   }
 
   /* The stack and local roots */
-  if (caml_frame_descriptors == NULL) caml_init_frame_descriptors();
+  if (caml_frame_descr_state != FRAME_DESCR_UPTODATE)
+      caml_init_frame_descriptors();
   caml_do_local_roots(f, caml_bottom_of_stack, caml_last_return_address,
                       caml_gc_regs, caml_local_roots);
   /* Global C roots */
