@@ -31,6 +31,8 @@ type error =
   | Illegal_letrec_expr
   | Free_super_var
   | Unknown_builtin_primitive of string
+  | AsmInline_parameter_not_constant
+  | AsmInline_used_outside
 
 exception Error of Location.t * error
 

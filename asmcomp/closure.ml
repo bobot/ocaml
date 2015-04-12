@@ -1030,6 +1030,8 @@ let rec close fenv cenv = function
           let (uifnot, _) = close fenv cenv ifnot in
           (Uifthenelse(uarg, uifso, uifnot), Value_unknown)
       end
+  | Lasminline asm ->
+      fatal_error ("Closure.close: inline assembly not yet implemented")
   | Lsequence(lam1, lam2) ->
       let (ulam1, _) = close fenv cenv lam1 in
       let (ulam2, approx) = close fenv cenv lam2 in

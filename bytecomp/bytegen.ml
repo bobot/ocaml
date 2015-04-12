@@ -701,6 +701,8 @@ let rec comp_expr env exp sz cont =
       Kpushtrap lbl_handler :: l
   | Lifthenelse(cond, ifso, ifnot) ->
       comp_binary_test env cond ifso ifnot sz cont
+  | Lasminline _ ->
+      fatal_error ("Bytegen.comp_expr: inline assembly remained in bytecode.")
   | Lsequence(exp1, exp2) ->
       comp_expr env exp1 sz (comp_expr env exp2 sz cont)
   | Lwhile(cond, body) ->

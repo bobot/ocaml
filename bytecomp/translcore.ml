@@ -26,6 +26,8 @@ type error =
   | Illegal_letrec_expr
   | Free_super_var
   | Unknown_builtin_primitive of string
+  | AsmInline_parameter_not_constant
+  | AsmInline_used_outside
 
 exception Error of Location.t * error
 
@@ -671,6 +673,8 @@ and transl_exp0 e =
         Lfunction(Curried, [obj; meth; cache; pos],
                   Lsend(Cached, Lvar meth, Lvar obj, [Lvar cache; Lvar pos],
                         e.exp_loc))
+      else if Asm_inline.is_asm_primitive p.prim_name then
+        raise(Error(e.exp_loc, AsmInline_used_outside))
       else
         transl_primitive e.exp_loc p e.exp_env e.exp_type
   | Texp_ident(path, _, {val_kind = Val_anc _}) ->
@@ -690,6 +694,21 @@ and transl_exp0 e =
             transl_function e.exp_loc !Clflags.native_code repr partial pl)
       in
       Lfunction(kind, params, body)
+  | Texp_apply({ exp_desc = Texp_ident(path, _, {val_kind = Val_prim p});
+                 exp_type = prim_type;
+                 exp_loc}, _)
+    when Asm_inline.is_asm_primitive p.prim_name ->
+      begin match Asm_inline.is_asm_application p.prim_name e with
+      | Asm_inline.Ok asm ->
+          let asm = Asm_inline.map_exprs transl_exp asm in
+          Lasminline(asm)
+      | Asm_inline.Expr e -> transl_exp e
+      | Asm_inline.Badly_placed_asm_primitive ->
+          raise(Error(exp_loc,AsmInline_used_outside ))
+      | Asm_inline.Not_complete loc ->
+          raise(Error(loc,AsmInline_parameter_not_constant))
+      | Asm_inline.Other_primitive -> assert false
+      end
   | Texp_apply({ exp_desc = Texp_ident(path, _, {val_kind = Val_prim p});
                 exp_type = prim_type }, oargs)
     when List.length oargs >= p.prim_arity
@@ -1234,7 +1253,13 @@ let report_error ppf = function
       fprintf ppf
         "Ancestor names can only be used to select inherited methods"
   | Unknown_builtin_primitive prim_name ->
-    fprintf ppf  "Unknown builtin primitive \"%s\"" prim_name
+      fprintf ppf "Unknown builtin primitive \"%s\"" prim_name
+  | AsmInline_parameter_not_constant ->
+      fprintf ppf "Configuration parameters of inline assembly must be constant"
+  | AsmInline_used_outside ->
+      fprintf ppf "Configuration function for inline assembly can't be used\
+                   outside inline assembly application"
+
 
 let () =
   Location.register_error_of_exn
