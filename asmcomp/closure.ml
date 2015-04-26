@@ -77,6 +77,8 @@ let occurs_var var u =
     | Utrywith(body, exn, hdlr) -> occurs body || occurs hdlr
     | Uifthenelse(cond, ifso, ifnot) ->
         occurs cond || occurs ifso || occurs ifnot
+    | Uasminline asm ->
+        Asm_inline_types.exists_exprs occurs asm
     | Usequence(u1, u2) -> occurs u1 || occurs u2
     | Uwhile(cond, body) -> occurs cond || occurs body
     | Ufor(id, lo, hi, dir, body) -> occurs lo || occurs hi || occurs body
@@ -215,6 +217,9 @@ let lambda_smaller lam threshold =
     | Uifthenelse(cond, ifso, ifnot) ->
         size := !size + 2;
         lambda_size cond; lambda_size ifso; lambda_size ifnot
+    | Uasminline asm ->
+        size := !size + Asm_inline_types.size asm;
+        Asm_inline_types.iter_exprs lambda_size asm
     | Usequence(lam1, lam2) ->
         lambda_size lam1; lambda_size lam2
     | Uwhile(cond, body) ->
@@ -632,6 +637,17 @@ let rec substitute fpc sb ulam =
       | su1 ->
           Uifthenelse(su1, substitute fpc sb u2, substitute fpc sb u3)
       end
+  | Uasminline asm ->
+      let open Asm_inline_types in
+      let asm = map_inputs (substitute fpc sb) asm in
+      let sb = ref sb in
+      let asm = map_outputs (fun id ->
+          let id' = Ident.rename id in
+          sb := Tbl.add id (Uvar id') !sb;
+          id') asm
+      in
+      let asm = map_branches (substitute fpc !sb) asm in
+      Uasminline asm
   | Usequence(u1, u2) ->
       Usequence(substitute fpc sb u1, substitute fpc sb u2)
   | Uwhile(u1, u2) ->
@@ -1031,7 +1047,9 @@ let rec close fenv cenv = function
           (Uifthenelse(uarg, uifso, uifnot), Value_unknown)
       end
   | Lasminline asm ->
-      fatal_error ("Closure.close: inline assembly not yet implemented")
+      let map e = fst (close fenv cenv e) in
+      let asm = Asm_inline_types.map_exprs map asm in
+      (Uasminline asm, Value_unknown)
   | Lsequence(lam1, lam2) ->
       let (ulam1, _) = close fenv cenv lam1 in
       let (ulam2, approx) = close fenv cenv lam2 in
@@ -1307,6 +1325,7 @@ let collect_exported_structured_constants a =
     | Uwhile (u1, u2)  -> ulam u1; ulam u2
     | Uifthenelse (u1, u2, u3)
     | Ufor (_, u1, u2, _, u3) -> ulam u1; ulam u2; ulam u3
+    | Uasminline asm -> Asm_inline_types.iter_exprs ulam asm
     | Uassign (_, u) -> ulam u
     | Usend (_, u1, u2, ul, _) -> ulam u1; ulam u2; List.iter ulam ul
   in

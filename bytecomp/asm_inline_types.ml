@@ -82,17 +82,30 @@ let print print_input print_output print_branch ppf asm =
 
 let list_map_snd f l = List.map (fun (a,b) -> (a,f b)) l
 let list_iter_snd f l = List.iter (fun (_,b) -> f b) l
+let list_exists_snd f l = List.exists (fun (_,b) -> f b) l
 
 let map_branches f asm  = { asm with branches = list_map_snd f asm.branches }
 let iter_branches f asm = list_iter_snd f asm.branches
+let exists_branches f asm = list_exists_snd f asm.branches
 
 
 let map_inputs f asm  = { asm with inputs = list_map_snd f asm.inputs }
 let iter_inputs f asm = list_iter_snd f asm.inputs
+let exists_inputs f asm = list_exists_snd f asm.inputs
 
 let map_exprs f asm  = { asm with branches = list_map_snd f asm.branches;
                               inputs = list_map_snd f asm.inputs}
 let iter_exprs f asm = list_iter_snd f asm.branches; list_iter_snd f asm.inputs
+let exists_exprs f asm =
+  list_exists_snd f asm.branches || list_exists_snd f asm.inputs
 
 let map_outputs f asm  = { asm with outputs = list_map_snd f asm.outputs }
 let iter_outputs f asm = list_iter_snd f asm.outputs
+let exists_outputs f asm = list_exists_snd f asm.outputs
+
+let size asm =
+  let size = ref 0 in
+  for i = 0 to String.length asm.asmcode - 1 do
+    if asm.asmcode.[i] = '\n' then incr size;
+  done;
+  !size

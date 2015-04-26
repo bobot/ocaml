@@ -48,6 +48,7 @@ type ulambda =
   | Ucatch of int * Ident.t list * ulambda * ulambda
   | Utrywith of ulambda * Ident.t * ulambda
   | Uifthenelse of ulambda * ulambda * ulambda
+  | Uasminline of (ulambda,Ident.t,ulambda) Asm_inline_types.t
   | Usequence of ulambda * ulambda
   | Uwhile of ulambda * ulambda
   | Ufor of Ident.t * ulambda * ulambda * direction_flag * ulambda

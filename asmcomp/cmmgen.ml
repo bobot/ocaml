@@ -1505,6 +1505,21 @@ let rec transl = function
         (transl ifso)
   | Uifthenelse(cond, ifso, ifnot) ->
       Cifthenelse(test_bool(transl cond), transl ifso, transl ifnot)
+  | Uasminline asm ->
+      fatal_error ("cmmgen.transl : inline assembly not yet implemented")
+      (* let open Asm_inline_types in *)
+      (* let inputs = List.map (function *)
+      (*     | {boxing=Boxed} as r, e -> r, transl e *)
+      (*     | {boxing=Float} as r, e -> r, transl_unbox_float e) *)
+      (*     asm.inputs in *)
+      (* let new_binding = Queue.create () in *)
+      (* let map = function *)
+      (*   | ({boxing=Boxed}, _) as p -> p *)
+      (*   | {boxing=Float} as r, id -> *)
+      (*       let unboxed_id = Ident.create "asm_out_unboxed" in *)
+      (*       Queue.add (id,box_float (Cvar unboxed_id)) new_binding; *)
+      
+      (* let outputs = List.map map asm.outputs  *)
   | Usequence(exp1, exp2) ->
       Csequence(remove_unit(transl exp1), transl exp2)
   | Uwhile(cond, body) ->
