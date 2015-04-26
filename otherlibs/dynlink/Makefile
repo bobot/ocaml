@@ -38,7 +38,7 @@ COMPILEROBJS=\
   ../../typing/primitive.cmo ../../typing/types.cmo \
   ../../typing/btype.cmo ../../typing/subst.cmo ../../typing/predef.cmo \
   ../../typing/datarepr.cmo ../../typing/cmi_format.cmo ../../typing/env.cmo \
-  ../../bytecomp/asm_inline.cmo ../../bytecomp/lambda.cmo ../../bytecomp/instruct.cmo \
+  ../../bytecomp/asm_inline_types.cmo ../../bytecomp/lambda.cmo ../../bytecomp/instruct.cmo \
   ../../bytecomp/cmo_format.cmi ../../bytecomp/opcodes.cmo \
   ../../bytecomp/runtimedef.cmo ../../bytecomp/bytesections.cmo \
   ../../bytecomp/dll.cmo ../../bytecomp/meta.cmo \

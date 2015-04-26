@@ -65,7 +65,8 @@ TYPING=typing/ident.cmo typing/path.cmo \
   typing/typedecl.cmo typing/typeclass.cmo \
   typing/typemod.cmo typing/untypeast.cmo
 
-COMP=bytecomp/asm_inline.cmo bytecomp/lambda.cmo bytecomp/printlambda.cmo \
+COMP=bytecomp/asm_inline_types.cmo bytecomp/lambda.cmo bytecomp/printlambda.cmo \
+  bytecomp/asm_inline.cmo \
   bytecomp/typeopt.cmo bytecomp/switch.cmo bytecomp/matching.cmo \
   bytecomp/translobj.cmo bytecomp/translcore.cmo \
   bytecomp/translclass.cmo bytecomp/translmod.cmo \

@@ -674,7 +674,7 @@ and transl_exp0 e =
                   Lsend(Cached, Lvar meth, Lvar obj, [Lvar cache; Lvar pos],
                         e.exp_loc))
       else if Asm_inline.is_asm_primitive p.prim_name then
-        raise(Error(e.exp_loc, AsmInline_used_outside))
+        transl_asm_primitive e
       else
         transl_primitive e.exp_loc p e.exp_env e.exp_type
   | Texp_ident(path, _, {val_kind = Val_anc _}) ->
@@ -694,21 +694,10 @@ and transl_exp0 e =
             transl_function e.exp_loc !Clflags.native_code repr partial pl)
       in
       Lfunction(kind, params, body)
-  | Texp_apply({ exp_desc = Texp_ident(path, _, {val_kind = Val_prim p});
-                 exp_type = prim_type;
+  | Texp_apply({ exp_desc = Texp_ident(_, _, {val_kind = Val_prim p});
                  exp_loc}, _)
     when Asm_inline.is_asm_primitive p.prim_name ->
-      begin match Asm_inline.is_asm_application p.prim_name e with
-      | Asm_inline.Ok asm ->
-          let asm = Asm_inline.map_exprs transl_exp asm in
-          Lasminline(asm)
-      | Asm_inline.Expr e -> transl_exp e
-      | Asm_inline.Badly_placed_asm_primitive ->
-          raise(Error(exp_loc,AsmInline_used_outside ))
-      | Asm_inline.Not_complete loc ->
-          raise(Error(loc,AsmInline_parameter_not_constant))
-      | Asm_inline.Other_primitive -> assert false
-      end
+      transl_asm_primitive e
   | Texp_apply({ exp_desc = Texp_ident(path, _, {val_kind = Val_prim p});
                 exp_type = prim_type }, oargs)
     when List.length oargs >= p.prim_arity
@@ -1224,6 +1213,20 @@ and transl_match e arg pat_expr_list exn_pat_expr_list partial =
     static_catch [transl_exp arg] [val_id]
       (Matching.for_function e.exp_loc None (Lvar val_id) cases partial)
 
+and transl_asm_primitive e =
+  match Asm_inline.is_asm_application e with
+  | Asm_inline.Ok (asm,args) ->
+      let asm = Asm_inline_types.map_exprs transl_exp asm in
+      if args = [] then Lasminline(asm)
+      else
+        event_after e (transl_apply (Lasminline(asm)) args e.exp_loc)
+  | Asm_inline.Expr e -> transl_exp e
+  | Asm_inline.Badly_placed_asm_primitive ->
+      raise(Error(e.exp_loc,AsmInline_used_outside ))
+  | Asm_inline.Not_complete loc ->
+      raise(Error(loc,AsmInline_parameter_not_constant))
+  | Asm_inline.Other_primitive -> assert false
+
 
 (* Wrapper for class compilation *)
 
@@ -1257,7 +1260,7 @@ let report_error ppf = function
   | AsmInline_parameter_not_constant ->
       fprintf ppf "Configuration parameters of inline assembly must be constant"
   | AsmInline_used_outside ->
-      fprintf ppf "Configuration function for inline assembly can't be used\
+      fprintf ppf "Configuration function for inline assembly can't be used \
                    outside inline assembly application"
 
 

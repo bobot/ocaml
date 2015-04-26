@@ -69,7 +69,7 @@ let rec eliminate_ref id = function
                   eliminate_ref id e2,
                   eliminate_ref id e3)
   | Lasminline asm ->
-      Lasminline(Asm_inline.map_exprs (eliminate_ref id) asm)
+      Lasminline(Asm_inline_types.map_exprs (eliminate_ref id) asm)
   | Lsequence(e1, e2) ->
       Lsequence(eliminate_ref id e1, eliminate_ref id e2)
   | Lwhile(e1, e2) ->
@@ -150,7 +150,7 @@ let simplify_exits lam =
         count l2
   | Ltrywith(l1, v, l2) -> count l1; count l2
   | Lifthenelse(l1, l2, l3) -> count l1; count l2; count l3
-  | Lasminline asm -> Asm_inline.iter_exprs count asm
+  | Lasminline asm -> Asm_inline_types.iter_exprs count asm
   | Lsequence(l1, l2) -> count l1; count l2
   | Lwhile(l1, l2) -> count l1; count l2
   | Lfor(_, l1, l2, dir, l3) -> count l1; count l2; count l3
@@ -267,7 +267,7 @@ let simplify_exits lam =
       end
   | Ltrywith(l1, v, l2) -> Ltrywith(simplif l1, v, simplif l2)
   | Lifthenelse(l1, l2, l3) -> Lifthenelse(simplif l1, simplif l2, simplif l3)
-  | Lasminline asm -> Lasminline(Asm_inline.map_exprs simplif asm)
+  | Lasminline asm -> Lasminline(Asm_inline_types.map_exprs simplif asm)
   | Lsequence(l1, l2) -> Lsequence(simplif l1, simplif l2)
   | Lwhile(l1, l2) -> Lwhile(simplif l1, simplif l2)
   | Lfor(v, l1, l2, dir, l3) ->
@@ -385,7 +385,7 @@ let simplify_lets lam =
   | Lstaticcatch(l1, (i,_), l2) -> count bv l1; count bv l2
   | Ltrywith(l1, v, l2) -> count bv l1; count bv l2
   | Lifthenelse(l1, l2, l3) -> count bv l1; count bv l2; count bv l3
-  | Lasminline asm -> Asm_inline.iter_exprs (count bv) asm
+  | Lasminline asm -> Asm_inline_types.iter_exprs (count bv) asm
   | Lsequence(l1, l2) -> count bv l1; count bv l2
   | Lwhile(l1, l2) -> count Tbl.empty l1; count Tbl.empty l2
   | Lfor(_, l1, l2, dir, l3) -> count bv l1; count bv l2; count Tbl.empty l3
@@ -489,7 +489,7 @@ let simplify_lets lam =
       Lstaticcatch (simplif l1, (i,args), simplif l2)
   | Ltrywith(l1, v, l2) -> Ltrywith(simplif l1, v, simplif l2)
   | Lifthenelse(l1, l2, l3) -> Lifthenelse(simplif l1, simplif l2, simplif l3)
-  | Lasminline asm -> Lasminline(Asm_inline.map_exprs simplif asm)
+  | Lasminline asm -> Lasminline(Asm_inline_types.map_exprs simplif asm)
   | Lsequence(Lifused(v, l1), l2) ->
       if count_var v > 0
       then Lsequence(simplif l1, simplif l2)
@@ -565,8 +565,8 @@ let rec emit_tail_infos is_tail lambda =
       emit_tail_infos is_tail ifso;
       emit_tail_infos is_tail ifno
   | Lasminline asm ->
-      Asm_inline.iter_inputs   (emit_tail_infos false)   asm;
-      Asm_inline.iter_branches (emit_tail_infos is_tail) asm
+      Asm_inline_types.iter_inputs   (emit_tail_infos false)   asm;
+      Asm_inline_types.iter_branches (emit_tail_infos is_tail) asm
   | Lsequence (lam1, lam2) ->
       emit_tail_infos false lam1;
       emit_tail_infos is_tail lam2

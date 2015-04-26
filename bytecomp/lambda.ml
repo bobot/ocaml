@@ -183,7 +183,7 @@ type lambda =
   | Lstaticcatch of lambda * (int * Ident.t list) * lambda
   | Ltrywith of lambda * Ident.t * lambda
   | Lifthenelse of lambda * lambda * lambda
-  | Lasminline of (lambda,Ident.t,lambda) Asm_inline.t
+  | Lasminline of (lambda,Ident.t,lambda) Asm_inline_types.t
   | Lsequence of lambda * lambda
   | Lwhile of lambda * lambda
   | Lfor of Ident.t * lambda * lambda * direction_flag * lambda
@@ -269,7 +269,7 @@ let make_key e =
     | Lifthenelse (cond,ifso,ifnot) ->
         Lifthenelse (tr_rec env cond,tr_rec env ifso,tr_rec env ifnot)
     | Lasminline asm ->
-        Lasminline (Asm_inline.map_exprs (tr_rec env) asm)
+        Lasminline (Asm_inline_types.map_exprs (tr_rec env) asm)
     | Lsequence (e1,e2) ->
         Lsequence (tr_rec env e1,tr_rec env e2)
     | Lassign (x,e) ->
@@ -354,7 +354,7 @@ let iter f = function
   | Lifthenelse(e1, e2, e3) ->
       f e1; f e2; f e3
   | Lasminline asm ->
-      Asm_inline.iter_exprs f asm
+      Asm_inline_types.iter_exprs f asm
   | Lsequence(e1, e2) ->
       f e1; f e2
   | Lwhile(e1, e2) ->
@@ -398,7 +398,8 @@ let free_ids get l =
     | Lassign(id, e) ->
         fv := IdentSet.add id !fv
     | Lasminline asm ->
-        Asm_inline.iter_outputs (fun id -> fv := IdentSet.remove id !fv) asm
+        Asm_inline_types.iter_outputs
+          (fun id -> fv := IdentSet.remove id !fv) asm
     | Lvar _ | Lconst _ | Lapply _
     | Lprim _ | Lswitch _ | Lstringswitch _ | Lstaticraise _
     | Lifthenelse _ | Lsequence _ | Lwhile _
@@ -493,7 +494,7 @@ let subst_lambda s lam =
   | Lstaticcatch(e1, io, e2) -> Lstaticcatch(subst e1, io, subst e2)
   | Ltrywith(e1, exn, e2) -> Ltrywith(subst e1, exn, subst e2)
   | Lifthenelse(e1, e2, e3) -> Lifthenelse(subst e1, subst e2, subst e3)
-  | Lasminline asm -> Lasminline(Asm_inline.map_exprs subst asm)
+  | Lasminline asm -> Lasminline(Asm_inline_types.map_exprs subst asm)
   | Lsequence(e1, e2) -> Lsequence(subst e1, subst e2)
   | Lwhile(e1, e2) -> Lwhile(subst e1, subst e2)
   | Lfor(v, e1, e2, dir, e3) -> Lfor(v, subst e1, subst e2, dir, subst e3)

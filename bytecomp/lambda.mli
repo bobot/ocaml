@@ -194,7 +194,7 @@ type lambda =
   | Lstaticcatch of lambda * (int * Ident.t list) * lambda
   | Ltrywith of lambda * Ident.t * lambda
   | Lifthenelse of lambda * lambda * lambda
-  | Lasminline of (lambda,Ident.t,lambda) Asm_inline.t
+  | Lasminline of (lambda,Ident.t,lambda) Asm_inline_types.t
   | Lsequence of lambda * lambda
   | Lwhile of lambda * lambda
   | Lfor of Ident.t * lambda * lambda * direction_flag * lambda
