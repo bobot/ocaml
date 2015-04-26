@@ -562,6 +562,8 @@ method emit_expr env exp =
                       rarg [||];
           r
       end
+  | Casminline asm ->
+      fatal_error "selectgen: asminline not implemented"
   | Cswitch(esel, index, ecases) ->
       begin match self#emit_expr env esel with
         None -> None

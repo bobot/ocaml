@@ -1506,20 +1506,7 @@ let rec transl = function
   | Uifthenelse(cond, ifso, ifnot) ->
       Cifthenelse(test_bool(transl cond), transl ifso, transl ifnot)
   | Uasminline asm ->
-      fatal_error ("cmmgen.transl : inline assembly not yet implemented")
-      (* let open Asm_inline_types in *)
-      (* let inputs = List.map (function *)
-      (*     | {boxing=Boxed} as r, e -> r, transl e *)
-      (*     | {boxing=Float} as r, e -> r, transl_unbox_float e) *)
-      (*     asm.inputs in *)
-      (* let new_binding = Queue.create () in *)
-      (* let map = function *)
-      (*   | ({boxing=Boxed}, _) as p -> p *)
-      (*   | {boxing=Float} as r, id -> *)
-      (*       let unboxed_id = Ident.create "asm_out_unboxed" in *)
-      (*       Queue.add (id,box_float (Cvar unboxed_id)) new_binding; *)
-      
-      (* let outputs = List.map map asm.outputs  *)
+      Casminline (transl_asm_inline asm)
   | Usequence(exp1, exp2) ->
       Csequence(remove_unit(transl exp1), transl exp2)
   | Uwhile(cond, body) ->
@@ -2063,6 +2050,41 @@ and transl_unbox_let box_fn unbox_fn transl_unbox_fn box_chunk box_offset
          if need_boxed
          then Clet(id, box_fn(Cvar unboxed_id), trbody2)
          else trbody2)
+
+and transl_asm_inline asm =
+  (** Contrary to transl_unbox_let the body doesn't impose the
+      unboxing, the specification of the inline asm does. Here just
+      look if we can use this possibility *)
+  let transl_box_bind box_fn unbox_fn transl_unbox_fn box_chunk box_offset
+      id unboxed_id trbody1 =
+    let (trbody2, need_boxed, is_assigned) =
+      subst_boxed_number unbox_fn id unboxed_id box_chunk box_offset trbody1 in
+    if need_boxed && is_assigned then
+      Clet(id, box_fn(Cvar unboxed_id), trbody1)
+    else if need_boxed
+    then Clet(id, box_fn(Cvar unboxed_id), trbody2)
+    else trbody2
+  in
+  let open Asm_inline_types in
+  let inputs = List.map (function
+      | {boxing=Boxed} as r, e -> r, transl e
+      | {boxing=Float} as r, e -> r, transl_unbox_float e)
+      asm.inputs in
+  let new_binding = Queue.create () in
+  let map = function
+    | ({boxing=Boxed}, _) as p -> p
+    | {boxing=Float} as r, id ->
+        let unboxed_id = Ident.create "asm_out_unboxed" in
+        let bind body =
+          transl_box_bind box_float unbox_float transl_unbox_float
+            Double_u 0 id unboxed_id body in
+        Queue.add bind new_binding;
+        r,unboxed_id
+  in
+  let outputs = List.map map asm.outputs in
+  let map (lab,e) = (lab, Queue.fold (fun e bind -> bind e) (transl e) new_binding) in
+  let branches = List.map map asm.branches in
+  {asm with inputs;outputs;branches}
 
 and make_catch ncatch body handler = match body with
 | Cexit (nexit,[]) when nexit=ncatch -> handler
