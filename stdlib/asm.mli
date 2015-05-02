@@ -27,7 +27,11 @@ type 'app callback
 exception Wrong_architecture of arch
 (** requested architecture *)
 
-type amd64_reg = [ `RAX | `RCX | `RDX | `RBX | `RSP | `RBP | `RSI | `RDI]
+type amd64_reg = [ `RAX | `RBC | `RDI | `RSI | `RDX | `RCX | `R8 | `R9 | `R12
+                 | `R13 | `R10 | `R11
+                 | `XMM0 | `XMM1 | `XMM2 | `XMM3 | `XMM4 | `XMM5 | `XMM6 | `XMM7
+                 | `XMM8 | `XMM9 | `XMM10 | `XMM11 | `XMM12 | `XMM13 | `XMM14
+                 | `XMM15 ]
 
 external amd64:
   input:amd64_reg input list ->

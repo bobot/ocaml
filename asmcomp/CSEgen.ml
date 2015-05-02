@@ -300,6 +300,13 @@ method private cse n i =
      let n1 = set_unknown_regs n (Proc.destroyed_at_oper i.desc) in
       {i with desc = Iifthenelse(test, self#cse n1 ifso, self#cse n1 ifnot);
               next = self#cse empty_numbering i.next}
+  | Iasminline asm ->
+      let open Asm_inline_types in
+      let effects = Array.concat (get_effects_reg asm) in
+      let n1 = set_unknown_regs n effects in
+      let asm = map_branches (self#cse n1) asm in
+      {i with desc = Iasminline asm;
+              next = self#cse empty_numbering i.next}
   | Iswitch(index, cases) ->
      let n1 = set_unknown_regs n (Proc.destroyed_at_oper i.desc) in
       {i with desc = Iswitch(index, Array.map (self#cse n1) cases);

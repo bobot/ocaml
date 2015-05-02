@@ -705,6 +705,13 @@ let emit_instr fallthrough i =
       | None -> ()
       | Some lbl -> I.jg (label lbl)
       end
+  | Lasminline asm ->
+      D.asm
+        (Asm_inline_types.emit
+           (fun r -> Asm_arg (reg r.(0)))
+           (fun l -> Asm_arg (label l))
+           (fun s -> Asm_string s)
+           asm)
   | Lswitch jumptbl ->
       let lbl = emit_label (new_label()) in
       (* rax and rdx are clobbered by the Lswitch,

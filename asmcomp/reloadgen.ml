@@ -111,6 +111,17 @@ method private reload i =
         (instr_cons
           (Iifthenelse(tst, self#reload ifso, self#reload ifnot)) newarg [||]
           (self#reload i.next))
+  | Iasminline asm ->
+      let open Asm_inline_types in
+      let stackp r =
+        match r.loc with
+        | Stack _ ->
+            Misc.fatal_error "Not been able to select hardware register"
+        | _ -> () in
+      Array.iter stackp i.arg;
+      Array.iter stackp i.res;
+      let asm = map_branches self#reload asm in
+      instr_cons (Iasminline asm) i.arg i.res (self#reload i.next)
   | Iswitch(index, cases) ->
       let newarg = self#makeregs i.arg in
       insert_moves i.arg newarg

@@ -97,7 +97,7 @@ type expression =
   | Cop of operation * expression list
   | Csequence of expression * expression
   | Cifthenelse of expression * expression * expression
-  | Casminline of (expression,Ident.t,expression) Asm_inline_types.t
+  | Casminline of (string,expression,Ident.t,expression) Asm_inline_types.t
   | Cswitch of expression * int array * expression array
   | Cloop of expression
   | Ccatch of int * Ident.t list * expression * expression

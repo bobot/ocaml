@@ -56,7 +56,7 @@ open Types
 open Primitive
 
 type is_asm_application_result =
-  | Ok of (expression,Ident.t,expression) t *
+  | Ok of (string,expression,Ident.t,expression) t *
           (Asttypes.arg_label * expression option * optional) list
   (** The asm inline specification correctly have been parsed *)
   | Expr of expression
@@ -157,7 +157,10 @@ let parse_asmcode asmcode =
   match asmcode with
   | (_,None,_) -> assert false (** absurd: by typing *)
   | (_,Some {exp_desc = Texp_constant (Const_string (name,_))}, _) ->
-      name
+      let l = Lexer.asmcode (Lexing.from_string name) in
+      List.map (function
+          | `Text s -> AText s
+          | `Var s -> AVar s) l
   | (_,Some e,_) -> raise_not_complete e
 
 (** fold_right on the element of the list *)

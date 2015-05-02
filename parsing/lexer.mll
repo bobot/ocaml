@@ -650,6 +650,22 @@ and skip_sharp_bang = parse
        { update_loc lexbuf None 1 false 0 }
   | "" { () }
 
+
+and asmcode = parse
+  | "%" identchar+ {
+      let s = Lexing.lexeme lexbuf in
+      (`Var s)::(asmcode lexbuf)
+    }
+  | "%%" {
+      (`Text "%")::(asmcode lexbuf)
+    }
+  | [^ '%']+ { let s = Lexing.lexeme lexbuf in
+               (`Text(s))::(asmcode lexbuf)
+             }
+  | eof { [] }
+
+
+
 {
 
   let token_with_comments lexbuf =

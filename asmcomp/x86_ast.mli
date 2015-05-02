@@ -181,8 +181,13 @@ type instruction =
   | XOR of arg * arg
   | XORPD of arg * arg
 
+type asm =
+  | Asm_arg of arg
+  | Asm_string of string
+
 type asm_line =
   | Ins of instruction
+  | Asm of asm list
 
   | Align of bool * int
   | Byte of constant

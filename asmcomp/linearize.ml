@@ -38,6 +38,7 @@ and instruction_desc =
   | Lbranch of label
   | Lcondbranch of test * label
   | Lcondbranch3 of label option * label option * label option
+  | Lasminline of (Reg.t array, unit, unit, label) Asm_inline_types.t
   | Lswitch of label array
   | Lsetuptrap of label
   | Lpushtrap
@@ -223,6 +224,20 @@ let rec linear i n =
           copy_instr (Lcondbranch(invert_test test, lbl_else)) i
             (linear ifso (add_branch lbl_end nelse))
       end
+  | Iasminline asm ->
+      let open Asm_inline_types in
+      let n1 = linear i.Mach.next n in
+      let (lbl_end, n2) = get_label n1 in
+      let nfork, asm = fold_map_branches (fun acc br ->
+          let acc = add_branch lbl_end acc in
+          let (lbl_br, acc) = get_label (linear br acc) in
+          (acc,lbl_br)
+        ) n2 asm in
+      let nend = try
+          let lab_end = List.assoc LEnd asm.branches in
+          add_branch lab_end nfork
+          with Not_found -> nfork in
+      copy_instr (Lasminline asm) i nend
   | Iswitch(index, cases) ->
       let lbl_cases = Array.make (Array.length cases) 0 in
       let (lbl_end, n1) = get_label(linear i.Mach.next n) in

@@ -133,6 +133,20 @@ let all_phys_regs =
 let phys_reg n =
   if n < 100 then hard_int_reg.(n) else hard_float_reg.(n - 100)
 
+let phys_reg_of_name =
+  let h =
+    Hashtbl.create (Array.length int_reg_name + Array.length float_reg_name) in
+  (** remove the '%' for not msvc *)
+  let conv = match Config.ccomp_type with
+    | "msvc" -> fun s -> s
+    | _ -> fun s -> String.sub s 1 (String.length s - 1) in
+  let fill hard_reg reg_name =
+    Array.iteri (fun i s -> Hashtbl.add h (conv s) (hard_reg.(i))) reg_name
+  in
+  fill hard_int_reg int_reg_name;
+  fill hard_float_reg float_reg_name;
+  fun s -> Hashtbl.find h s
+
 let rax = phys_reg 0
 let rcx = phys_reg 5
 let rdx = phys_reg 4

@@ -226,6 +226,11 @@ let print_line b = function
   | Section _ -> assert false
   | Space n -> bprintf b "\tBYTE\t%d DUP (?)" n
   | Word n -> bprintf b "\tWORD\t%a" cst n
+  | Asm args ->
+      bprintf b "\t";
+      List.iter (function
+          | Asm_arg a -> bprintf b "%a" arg a
+          | Asm_string s -> bprintf b "%s" s) args
 
   (* windows only *)
   | External (s, ptr) -> bprintf b "\tEXTRN\t%s: %s" s (string_of_datatype ptr)

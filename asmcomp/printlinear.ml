@@ -48,6 +48,10 @@ let instr ppf i =
          fprintf ppf "@,case %i: goto %a" n label lbl in
       case 0 lbl0; case 1 lbl1; case 2 lbl2;
       fprintf ppf "@,endswitch"
+  | Lasminline asm ->
+      let print_unit ppf () = () in
+      Asm_inline_types.print
+        regs print_unit print_unit label ppf asm
   | Lswitch lblv ->
       fprintf ppf "switch %a" reg i.arg.(0);
       for i = 0 to Array.length lblv - 1 do

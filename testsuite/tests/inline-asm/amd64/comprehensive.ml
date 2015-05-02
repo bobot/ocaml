@@ -1,13 +1,13 @@
 
 
-(* let f     = 5. *)
+let f     = 5.
 let i     = 5
 (* let i32   = 5l *)
 (* let i64   = 5L *)
 (* let inat  = 5n *)
 (* let t     = (5, 5) *)
-(* let rf    = ref 6. *)
-(* let ri    = ref 6 *)
+let rf    = ref 6.
+let ri    = ref 6
 (* let ri32  = ref 6l *)
 (* let ri64  = ref 6L *)
 (* let rinat = ref 6n *)
@@ -21,18 +21,18 @@ let () =
   | AMD64 ->
       amd64
         ~input:[input_value "%0" i]
-        "mov	%0, %1	# func1a"
+        "mov	%0, %1	# func1"
         ~effect:[`VReg "%1"]
         ~output:(output_value "%1" output_end)
         ~label:[`End,(fun x () -> assert (x = i))]
   | X86 ->
       x86
         ~input:[input_value "%0" i]
-        "mov	%0, %1	# func1a"
+        "mov	%0, %1	# func1"
         ~effect:[`VReg "%1"]
         ~output:(output_value "%1" output_end)
         ~label:[`End,(fun x () -> assert (x = i))]
-
+  | _ -> assert false
 
        (*
 external func1a : 'a ref -> 'a
@@ -50,8 +50,32 @@ external func1f : nativeint ref -> 'a
 external func1g : (int * int) ref -> int * int
   = "%asm" "" "mov	(%0), %1	# func1g" "r" "=r"
 *)
-         
-(* let x = func1a ri    in assert (x = !ri); *)
+
+
+let () =
+  let open Asm in
+  amd64
+    ~input:[input_value "%0" ri]
+    "mov	(%0), %1	# func1a"
+    ~effect:[`VReg "%1"]
+    ~output:(output_value "%1" output_end)
+    ~label:[`End,(fun x () -> assert (x = !ri))];
+  amd64
+    ~input:[input_float "%0" f]
+    "movq	%0, %1	# func1"
+    ~effect:[`VReg "%1"]
+    ~output:(output_float "%1" output_end)
+    ~label:[`End,(fun x () -> assert (x = f))];
+    amd64
+    ~input:[input_value "%0" rf]
+    "movq	(%0), %0	# read ref\n\
+     \tmovsd	(%0), %1	# read float"
+    ~effect:[`VReg "%1"; `VReg "%0"]
+    ~output:(output_float "%1" output_end)
+    ~label:[`End,(fun x () -> assert (x = !rf))]
+
+  
+
   (* let x = func1a ri32  in assert (x = !ri32); *)
   (* let x = func1a ri64  in assert (x = !ri64); *)
   (* let x = func1a rinat in assert (x = !rinat); *)
@@ -62,6 +86,7 @@ external func1g : (int * int) ref -> int * int
   (* let x = func1e ri64  in assert (x = !ri64); *)
   (* let x = func1f rinat in assert (x = !rinat); *)
   (* let x = func1g rt    in assert (x = !rt); *)
+
 (*
 external func2a : 'a -> 'a ref                   -> unit
   = "%asm" "" "mov	%0, (%1)	# func2a" "r" "+r" "=" "memory"

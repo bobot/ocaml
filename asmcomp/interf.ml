@@ -97,6 +97,16 @@ let build_graph fundecl =
         interf ifso;
         interf ifnot;
         interf i.next
+    | Iasminline asm ->
+        let open Asm_inline_types in
+        List.iter (function
+            | EReg reg -> add_interf_set reg i.live;
+            | EVreg _ -> assert false (** absurd: must be already a
+                                        real virtual register *)
+            | EMemory -> ()) asm.effects;
+        add_interf_self (Array.append i.res i.arg);
+        iter_branches interf asm;
+        interf i.next;
     | Iswitch(index, cases) ->
         for i = 0 to Array.length cases - 1 do
           interf cases.(i)
@@ -167,6 +177,13 @@ let build_graph fundecl =
         prefer (weight / 2) ifso;
         prefer (weight / 2) ifnot;
         prefer weight i.next
+    | Iasminline asm ->
+        let open Asm_inline_types in
+        (** For now make registers involved hardware register *)
+        add_spill_cost 10000 i.arg;
+        add_spill_cost 10000 i.res;
+        iter_branches (prefer (weight / 2)) asm;
+        prefer weight i.next;
     | Iswitch(index, cases) ->
         for i = 0 to Array.length cases - 1 do
           prefer (weight / 2) cases.(i)

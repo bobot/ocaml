@@ -20,7 +20,7 @@ val is_asm_primitive : string -> bool
 open Typedtree
 
 type is_asm_application_result =
-  | Ok of (expression,Ident.t,expression) t *
+  | Ok of (string,expression,Ident.t,expression) t *
           (Asttypes.arg_label * expression option * optional) list
   (** The asm inline specification have been parsed correctly.
       The remaining arguments are return.

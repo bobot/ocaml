@@ -270,6 +270,11 @@ let print_line b = function
   | Word n ->
       if system = S_solaris then bprintf b "\t.value\t%a" cst n
       else bprintf b "\t.word\t%a" cst n
+  | Asm args ->
+      bprintf b "\t";
+      List.iter (function
+          | Asm_arg a -> bprintf b "%a" arg a
+          | Asm_string s -> bprintf b "%s" s) args
 
   (* gas only *)
   | Cfi_adjust_cfa_offset n -> bprintf b "\t.cfi_adjust_cfa_offset %d" n

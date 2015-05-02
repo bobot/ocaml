@@ -135,7 +135,8 @@ let rec expr ppf = function
       fprintf ppf "@[<2>(if@ %a@ %a@ %a)@]" expr e1 expr e2 expr e3
   | Casminline asm ->
       fprintf ppf "@[<2>(%a)@]"
-        (Asm_inline_types.print expr Ident.print expr) asm
+        (Asm_inline_types.print Format.pp_print_string expr Ident.print expr)
+        asm
   | Cswitch(e1, index, cases) ->
       let print_case i ppf =
         for j = 0 to Array.length index - 1 do

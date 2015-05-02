@@ -59,3 +59,6 @@ val set_preprocessor :
   (unit -> unit) ->
   ((Lexing.lexbuf -> Parser.token) -> Lexing.lexbuf -> Parser.token) ->
   unit
+
+
+val asmcode: Lexing.lexbuf -> [`Text of string | `Var of string] list

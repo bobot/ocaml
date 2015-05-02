@@ -131,6 +131,11 @@ let find_reload_at_exit k =
 
 let reload_at_break = ref Reg.Set.empty
 
+(** [before] is the set of live registers that are spilled before the
+    instruction.
+    The result is the set of registers that are spilled at the end of
+    all the list of instructions.
+ *)
 let rec reload i before =
   incr current_date;
   record_use i.arg;
@@ -174,6 +179,22 @@ let rec reload i before =
         instr_cons (Iifthenelse(test, new_ifso, new_ifnot))
         i.arg i.res new_next in
       destroyed_at_fork := (new_i, at_fork) :: !destroyed_at_fork;
+      (add_reloads (Reg.inter_set_array before i.arg) new_i,
+       finally)
+  | Iasminline asm ->
+      let open Asm_inline_types in
+      let at_fork = Reg.diff_set_array before i.arg in
+      let date_fork = !current_date in
+      let ((max_date,after),asm) =
+        fold_map_branches (fun (max_date,after) br ->
+            current_date := date_fork;
+            let (br',after_br) = reload br at_fork in
+            ((max !current_date max_date, Reg.Set.union after after_br),br')
+          )
+          (date_fork, Reg.Set.empty) asm in
+      current_date := max_date;
+      let (next, finally) = reload i.next after in
+      let new_i = instr_cons (Iasminline asm) i.arg i.res next in
       (add_reloads (Reg.inter_set_array before i.arg) new_i,
        finally)
   | Iswitch(index, cases) ->
@@ -327,6 +348,18 @@ let rec spill i finally =
                                     spill_ifso_branch)
                        spill_ifnot_branch)
       end
+  | Iasminline asm ->
+      let open Asm_inline_types in
+      let (new_next, at_join) = spill i.next finally in
+      let (before_branches,asm) =
+        fold_map_branches (fun acc br ->
+            let (br',before) = spill br at_join in
+            let br' = add_spills (Reg.inter_set_array before i.res) br' in
+            let before = Reg.diff_set_array before i.res in
+            (Reg.Set.union acc before, br')
+          ) Reg.Set.empty asm
+      in
+      (instr_cons (Iasminline asm) i.arg i.res new_next,before_branches)
   | Iswitch(index, cases) ->
       let (new_next, at_join) = spill i.next finally in
       let saved_inside_arm = !inside_arm in

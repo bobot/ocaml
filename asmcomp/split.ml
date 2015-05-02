@@ -149,6 +149,20 @@ let rec rename i sub =
       (instr_cons (Iifthenelse(tst, new_ifso, new_ifnot))
                   (subst_regs i.arg sub) [||] new_next,
        sub_next)
+  | Iasminline asm ->
+      let open Asm_inline_types in
+      let asm = map_regs (fun r -> subst_regs r sub) asm in
+      let sub_branches, asm =
+        fold_map_branches (fun acc br ->
+            let (br', sub_br) = rename br sub in
+            sub_br::acc, br'
+          ) [] asm
+      in
+      let sub_merge = merge_subst_array (Array.of_list sub_branches) i.next in
+      let (new_next, sub_next) = rename i.next sub_merge in
+      (instr_cons (Iasminline asm)
+         (subst_regs i.arg sub) (subst_regs i.res sub) new_next,
+       sub_next)
   | Iswitch(index, cases) ->
       let new_sub_cases = Array.map (fun c -> rename c sub) cases in
       let sub_merge =

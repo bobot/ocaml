@@ -139,7 +139,8 @@ let rec lam ppf = function
   | Uifthenelse(lcond, lif, lelse) ->
       fprintf ppf "@[<2>(if@ %a@ %a@ %a)@]" lam lcond lam lif lam lelse
   | Uasminline asm ->
-      fprintf ppf "@[<2>(%a)@]" (Asm_inline_types.print lam Ident.print lam) asm
+      fprintf ppf "@[<2>(%a)@]"
+        (Asm_inline_types.print Format.pp_print_string lam Ident.print lam) asm
   | Usequence(l1, l2) ->
       fprintf ppf "@[<2>(seq@ %a@ %a)@]" lam l1 sequence l2
   | Uwhile(lcond, lbody) ->

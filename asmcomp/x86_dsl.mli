@@ -90,6 +90,7 @@ module D : sig
   val text: unit -> unit
   val type_: string -> string -> unit
   val word: constant -> unit
+  val asm: asm list -> unit
 end
 
 module I : sig

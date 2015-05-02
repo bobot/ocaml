@@ -61,6 +61,11 @@ let rec combine i allocstate =
       let newnext = combine_restart i.next in
       (instr_cons (Iifthenelse(test, newifso, newifnot)) i.arg i.res newnext,
        allocated_size allocstate)
+  | Iasminline asm ->
+      let asm = Asm_inline_types.map_branches combine_restart asm in
+      let newnext = combine_restart i.next in
+      (instr_cons (Iasminline asm) i.arg i.res newnext,
+       allocated_size allocstate)
   | Iswitch(table, cases) ->
       let newcases = Array.map combine_restart cases in
       let newnext = combine_restart i.next in

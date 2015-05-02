@@ -32,6 +32,7 @@ and instruction_desc =
   | Lbranch of label
   | Lcondbranch of Mach.test * label
   | Lcondbranch3 of label option * label option * label option
+  | Lasminline of (Reg.t array, unit, unit, label) Asm_inline_types.t
   | Lswitch of label array
   | Lsetuptrap of label
   | Lpushtrap

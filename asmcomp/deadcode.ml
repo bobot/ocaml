@@ -40,6 +40,13 @@ let rec deadcode i =
       let (s, _) = deadcode i.next in
       ({i with desc = Iifthenelse(test, ifso', ifnot'); next = s},
        Reg.add_set_array i.live i.arg)
+  | Iasminline asm ->
+      (** todo use effect *)
+      let asm =
+        Asm_inline_types.map_branches (fun e -> (fst (deadcode e))) asm in
+      let (s,_) = deadcode i.next in
+      ({i with desc = Iasminline(asm); next = s},
+       Reg.add_set_array i.live i.arg)
   | Iswitch(index, cases) ->
       let cases' = Array.map (fun c -> fst (deadcode c)) cases in
       let (s, _) = deadcode i.next in

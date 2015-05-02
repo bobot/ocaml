@@ -68,6 +68,7 @@ and instruction_desc =
   | Iop of operation
   | Ireturn
   | Iifthenelse of test * instruction * instruction
+  | Iasminline of (Reg.t array, unit, unit, instruction) Asm_inline_types.t
   | Iswitch of int array * instruction array
   | Iloop of instruction
   | Icatch of int * instruction * instruction

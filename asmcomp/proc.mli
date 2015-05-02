@@ -24,6 +24,9 @@ val register_name: int -> string
 val phys_reg: int -> Reg.t
 val rotate_registers: bool
 
+val phys_reg_of_name: string -> Reg.t
+(** Must be compatible with Asm.$(arch)_reg (put in lowercase) *)
+
 (* Calling conventions *)
 val loc_arguments: Reg.t array -> Reg.t array * int
 val loc_results: Reg.t array -> Reg.t array

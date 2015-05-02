@@ -70,6 +70,17 @@ let rec live i finally =
       let at_fork = Reg.Set.union (live ifso at_join) (live ifnot at_join) in
       i.live <- at_fork;
       Reg.add_set_array at_fork i.arg
+  | Iasminline asm ->
+      let open Asm_inline_types in
+      let at_join = live i.next finally in
+      let at_fork =
+        fold_branches (fun acc b ->
+            let at_branch = Reg.diff_set_array (live b at_join) i.res in
+            Reg.Set.union acc at_branch
+          )
+          Reg.Set.empty asm in
+      i.live <- at_fork;
+      Reg.add_set_array i.live i.arg
   | Iswitch(index, cases) ->
       let at_join = live i.next finally in
       let at_fork = ref Reg.Set.empty in
@@ -128,6 +139,6 @@ let fundecl ppf f =
   (* Sanity check: only function parameters can be live at entrypoint *)
   let wrong_live = Reg.Set.diff initially_live (Reg.set_of_array f.fun_args) in
   if not (Reg.Set.is_empty wrong_live) then begin
-    Format.fprintf ppf "%a@." Printmach.regset wrong_live;
+    Format.fprintf ppf "wrong_live: %a@." Printmach.regset wrong_live;
     Misc.fatal_error "Liveness.fundecl"
   end

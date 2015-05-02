@@ -159,6 +159,11 @@ let rec instr ppf i =
       | _ -> fprintf ppf "@;<0 -2>else@,%a" instr ifnot
       end;
       fprintf ppf "@;<0 -2>endif@]"
+  | Iasminline asm ->
+      let print_unit ppf () = () in
+      fprintf ppf "@[<2>(%a)@]"
+        (Asm_inline_types.print regs print_unit print_unit instr)
+        asm
   | Iswitch(index, cases) ->
       fprintf ppf "switch %a" reg i.arg.(0);
       for i = 0 to Array.length cases - 1 do
