@@ -563,62 +563,20 @@ method emit_expr env exp =
           r
       end
   | Casminline asm ->
-      let open Asm_inline_types in
-      let reg_of_name : (string,Reg.t array) Hashtbl.t = Hashtbl.create 10 in
-      let reg_of_vreg vreg =
-        try Hashtbl.find reg_of_name vreg.name
-        with Not_found ->
-          let reg = match vreg with
-            | {reg=Some s} -> [|Proc.phys_reg_of_name s|]
-            | {boxing=Boxed} -> Reg.createv typ_addr
-            | {boxing=Float} -> Reg.createv typ_float in
-          Hashtbl.add reg_of_name vreg.name reg;
-          reg in
-      (** emit inputs *)
-      let args = List.map snd asm.inputs in
-      begin match self#emit_parts_list env args with
-      | None -> (** one of the argument doesn't terminate *) None
-      | Some(simple_args,env) ->
-          let inputs = List.map2 (fun (vreg,_) simple_arg ->
-              let reg = reg_of_vreg vreg in
-              match self#emit_expr env simple_arg with
-              | None -> assert false (* should have been caught in emit_parts *)
-              | Some loc_exp ->
-                  self#insert_moves loc_exp reg;
-                  ({vreg with reg = Some reg},())
-            ) asm.inputs args in
-          (** emit outputs *)
-          let env = ref env in
-          let outputs = List.map (fun (vreg,id) ->
-              let reg = reg_of_vreg vreg in
-              env := Tbl.add id reg !env;
-              ({vreg with reg = Some reg},()))
-              asm.outputs
-          in
-          let env = !env in
-          (** convert effects *)
-          let effects = List.map (function
-                | EReg n -> EReg [|Proc.phys_reg_of_name n|]
-                | EVreg n -> EReg (Hashtbl.find reg_of_name n)
-                | EMemory -> EMemory) asm.effects
-          in
-          (** emit branches *)
-          let rs_branches =
-            List.map (fun (lab,e) -> self#emit_sequence env e)
-              asm.branches in
-          let r = join_array (Array.of_list rs_branches) in
-          let branches =
-            List.map2 (fun (lab,_) (_,s) -> (lab,s#extract))
-              asm.branches rs_branches in
-          let asm = {inputs; outputs; effects; branches;
-                     asmcode = asm.asmcode} in
-          (** gather input and output registers *)
-          let rin = Array.concat (get_inputs_reg asm) in
-          let rout = Array.concat (get_outputs_reg asm) in
-          self#insert (Iasminline asm) rin rout;
-          r
-      end
-
+      self#emit_asminline
+        (fun env branches ->
+           let rs_branches =
+             List.map (fun (lab,e) -> self#emit_sequence env e)
+               branches in
+           let r = join_array (Array.of_list rs_branches) in
+           let branches =
+             List.map2 (fun (lab,_) (_,s) -> (lab,s#extract))
+               branches rs_branches in
+           r,branches
+        )
+        env
+        None
+        asm
   | Cswitch(esel, index, ecases) ->
       begin match self#emit_expr env esel with
         None -> None
@@ -770,6 +728,60 @@ method emit_stores env data regs_addr =
               a := Arch.offset_addressing !a (size_expr env e))
     data
 
+method private emit_asminline :
+  type a. ('b -> 'c -> a * 'e) -> 'b -> a -> 'd -> a =
+    fun emit_branches env term asm ->
+  let open Asm_inline_types in
+  let reg_of_name : (string,Reg.t array) Hashtbl.t = Hashtbl.create 10 in
+  let reg_of_vreg vreg =
+    try Hashtbl.find reg_of_name vreg.name
+    with Not_found ->
+      let reg = match vreg with
+        | {reg=Some s} -> [|Proc.phys_reg_of_name s|]
+        | {boxing=Boxed} -> Reg.createv typ_addr
+        | {boxing=Float} -> Reg.createv typ_float in
+      Hashtbl.add reg_of_name vreg.name reg;
+      reg in
+  (** emit inputs *)
+  let args = List.map snd asm.inputs in
+  begin match self#emit_parts_list env args with
+  | None -> (** one of the argument doesn't terminate *) term
+  | Some(simple_args,env) ->
+      let inputs = List.map2 (fun (vreg,_) simple_arg ->
+          let reg = reg_of_vreg vreg in
+          match self#emit_expr env simple_arg with
+          | None -> assert false (* should have been caught in emit_parts *)
+          | Some loc_exp ->
+              self#insert_moves loc_exp reg;
+              ({vreg with reg = Some reg},())
+        ) asm.inputs args in
+      (** emit outputs *)
+      let env = ref env in
+      let outputs = List.map (fun (vreg,id) ->
+          let reg = reg_of_vreg vreg in
+          env := Tbl.add id reg !env;
+          ({vreg with reg = Some reg},()))
+          asm.outputs
+      in
+      let env = !env in
+      (** convert effects *)
+      let effects = List.map (function
+          | EReg n -> EReg [|Proc.phys_reg_of_name n|]
+          | EVreg n -> EReg (Hashtbl.find reg_of_name n)
+          | EMemory -> EMemory) asm.effects
+      in
+      (** emit branches *)
+      let r,branches = emit_branches env asm.branches in
+      let asm = {inputs; outputs; effects; branches;
+                 asmcode = asm.asmcode} in
+      (** gather input and output registers *)
+      let rin = Array.concat (get_inputs_reg asm) in
+      let rout = Array.concat (get_outputs_reg asm) in
+      self#insert (Iasminline asm) rin rout;
+      r
+  end
+
+
 (* Same, but in tail position *)
 
 method private emit_return env exp =
@@ -844,6 +856,17 @@ method emit_tail env exp =
                                          self#emit_tail_sequence env eelse))
                       rarg [||]
       end
+  | Casminline asm ->
+      self#emit_asminline
+        (fun env branches ->
+           let branches =
+             List.map (fun (lab,e) -> lab,self#emit_tail_sequence env e)
+               branches in
+           (),branches
+        )
+        env
+        ()
+        asm
   | Cswitch(esel, index, ecases) ->
       begin match self#emit_expr env esel with
         None -> ()

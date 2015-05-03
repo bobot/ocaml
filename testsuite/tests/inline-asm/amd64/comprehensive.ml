@@ -89,12 +89,28 @@ let f x y =
      jo	%over\n\t\
      sub	$1,%x"
     ~output:(ovalue "%x" oend)
-    ~label:[`End,(fun r () -> assert (r = (x+y)); r);
+    ~label:[`End,(fun r () -> r);
             `Label "%over",(fun _ () -> max_int)])
 
 let () =
   assert (f 1 2 = 3);
-  assert (f (max_int-8) 10 = max_int)
+  assert (f (max_int-8) 10 = max_int);
+  assert (f max_int (f 1 3) = max_int)
+
+let g x y =
+  Asm.(amd64
+    ~input:[ivalue "%x" x; ivalue "%y" y]
+    ~effect:[`VReg "%x"]
+    "add	%y,%x #g\n\t\
+     jo	%over\n\t\
+     sub	$1,%x"
+    ~output:(ovalue "%x" oend)
+    ~label:[`End,(fun r () -> r);
+            `Label "%over",(fun _ () -> max x y)])
+
+
+let h x y =
+  g x (g x y)
 
   (* let x = func1a ri32  in assert (x = !ri32); *)
   (* let x = func1a ri64  in assert (x = !ri64); *)
