@@ -20,17 +20,17 @@ let () =
   match arch with
   | AMD64 ->
       amd64
-        ~input:[input_value "%0" i]
+        ~input:[ivalue "%0" i]
         "mov	%0, %1	# func1"
         ~effect:[`VReg "%1"]
-        ~output:(output_value "%1" output_end)
+        ~output:(ovalue "%1" oend)
         ~label:[`End,(fun x () -> assert (x = i))]
-  | X86 ->
-      x86
-        ~input:[input_value "%0" i]
+  | I386 ->
+      i386
+        ~input:[ivalue "%0" i]
         "mov	%0, %1	# func1"
         ~effect:[`VReg "%1"]
-        ~output:(output_value "%1" output_end)
+        ~output:(ovalue "%1" oend)
         ~label:[`End,(fun x () -> assert (x = i))]
   | _ -> assert false
 
@@ -55,26 +55,46 @@ external func1g : (int * int) ref -> int * int
 let () =
   let open Asm in
   amd64
-    ~input:[input_value "%0" ri]
+    ~input:[ivalue "%0" ri]
     "mov	(%0), %1	# func1a"
     ~effect:[`VReg "%1"]
-    ~output:(output_value "%1" output_end)
+    ~output:(ovalue "%1" oend)
     ~label:[`End,(fun x () -> assert (x = !ri))];
   amd64
-    ~input:[input_float "%0" f]
+    ~input:[ifloat "%0" f]
     "movq	%0, %1	# func1"
     ~effect:[`VReg "%1"]
-    ~output:(output_float "%1" output_end)
+    ~output:(ofloat "%1" oend)
     ~label:[`End,(fun x () -> assert (x = f))];
-    amd64
-    ~input:[input_value "%0" rf]
+  amd64
+    ~input:[ivalue "%0" rf]
     "movq	(%0), %0	# read ref\n\
      \tmovsd	(%0), %1	# read float"
     ~effect:[`VReg "%1"; `VReg "%0"]
-    ~output:(output_float "%1" output_end)
-    ~label:[`End,(fun x () -> assert (x = !rf))]
+    ~output:(ofloat "%1" oend)
+    ~label:[`End,(fun x () -> assert (x = !rf))];
+  amd64
+    ~input:[ivalue "%0" i]
+    "add	$2, %0	# add 1"
+    ~effect:[`VReg "%0"]
+    ~output:(ovalue "%0" oend)
+    ~label:[`End,(fun x () -> assert (x = i+1))]
 
-  
+
+let f x y =
+  Asm.(amd64
+    ~input:[ivalue "%x" x; ivalue "%y" y]
+    ~effect:[`VReg "%x"]
+    "add	%y,%x #f\n\t\
+     jo	%over\n\t\
+     sub	$1,%x"
+    ~output:(ovalue "%x" oend)
+    ~label:[`End,(fun r () -> assert (r = (x+y)); r);
+            `Label "%over",(fun _ () -> max_int)])
+
+let () =
+  assert (f 1 2 = 3);
+  assert (f (max_int-8) 10 = max_int)
 
   (* let x = func1a ri32  in assert (x = !ri32); *)
   (* let x = func1a ri64  in assert (x = !ri64); *)

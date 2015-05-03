@@ -230,6 +230,7 @@ let print_line b = function
       bprintf b "\t";
       List.iter (function
           | Asm_arg a -> bprintf b "%a" arg a
+          | Asm_label s -> bprintf b "%s" s
           | Asm_string s -> bprintf b "%s" s) args
 
   (* windows only *)

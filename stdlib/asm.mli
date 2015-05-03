@@ -12,7 +12,7 @@
 
 (** Arch *)
 
-type arch = X86 | AMD64 | ARM | ARM64 | POWER | Byte
+type arch = I386 | AMD64 | ARM | ARM64 | POWER | Byte
 
 val pp_arch: Format.formatter -> arch -> unit
 
@@ -41,33 +41,34 @@ external amd64:
   label:([`End | `Label of string] * 'app) list ->
   'res = "%asm_amd64"
 
-type x86_reg = [ `EAX ]
 
-external x86:
-  input:x86_reg input list ->
+type i386_reg = [ `EAX | `EBX | `ECX | `EDX | `ESI | `EDI | `EBP | `TOS ]
+
+external i386:
+  input:i386_reg input list ->
   string ->
-  effect:[x86_reg | `VReg of string | `Memory] list ->
-  output:(x86_reg,'app,'res) output ->
+  effect:[i386_reg | `VReg of string | `Memory] list ->
+  output:(i386_reg,'app,'res) output ->
   label:([`End | `Label of string] * 'app) list ->
-  'res = "%asm_x86"
+  'res = "%asm_i386"
 
 (** {2 Inputs} *)
 
-external input_value : ?force_reg:'reg -> string -> 'a -> 'reg input
+external ivalue : ?force_reg:'reg -> string -> 'a -> 'reg input
   = "%asm_input_value"
 
-external input_float : ?force_reg:'reg -> string -> float -> 'reg input
+external ifloat : ?force_reg:'reg -> string -> float -> 'reg input
   = "%asm_input_float"
 
 (** {2 Outputs} *)
 
-external output_value: ?force_reg:'reg -> string ->
+external ovalue: ?force_reg:'reg -> string ->
   ('reg, 'app, 'res) output -> ('reg, 'arg -> 'app, 'res) output
   = "%asm_output_value"
 
-external output_float: ?force_reg:'reg -> string ->
+external ofloat: ?force_reg:'reg -> string ->
   ('reg, 'app, 'res) output -> ('reg, float -> 'app, 'res) output
   = "%asm_output_float"
 
-external output_end  : ('reg,unit -> 'res,'res) output
+external oend  : ('reg,unit -> 'res,'res) output
   = "%asm_output_end"

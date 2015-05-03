@@ -12,7 +12,7 @@
 
 open Asm_inline_types
 
-let asm_arch_supported = ["amd64";"x86"]
+let asm_arch_supported = ["amd64";"i386"]
 
 let asm_input_primitive = [
   "%asm_input_value", Boxed;
@@ -79,7 +79,7 @@ let mk_construct cst args =
 let arch_of_string s =
   match s with
   | "amd64" -> "AMD64"
-  | "x86" -> "X86"
+  | "i386" -> "I386"
   | "arm" -> "ARM"
   | "arm64" -> "ARM64"
   | "power" -> "POWER"

@@ -709,7 +709,7 @@ let emit_instr fallthrough i =
       D.asm
         (Asm_inline_types.emit
            (fun r -> Asm_arg (reg r.(0)))
-           (fun l -> Asm_arg (label l))
+           (fun l -> Asm_label (emit_label l))
            (fun s -> Asm_string s)
            asm)
   | Lswitch jumptbl ->

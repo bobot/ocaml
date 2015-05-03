@@ -183,6 +183,7 @@ type instruction =
 
 type asm =
   | Asm_arg of arg
+  | Asm_label of string
   | Asm_string of string
 
 type asm_line =
