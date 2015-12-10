@@ -335,7 +335,15 @@ void caml_oldify_local_roots (void)
   if (caml_scan_roots_hook != NULL) (*caml_scan_roots_hook)(&caml_oldify_one);
 }
 
-static mlsize_t incr_roots_i, incr_roots_j, incr_roots_sz, roots_count;
+/** invariant for incremental roots darkening (incr_roots_*) :
+    - if incr_roots_to_resume then incr_roots_i, incr_roots_j and
+    incr_roots_glob are initialized and have correct values
+    - if !incr_roots_to_resume then they must be initialized.
+
+    roots_count is the number of roots darkened so far.
+ */
+static int incr_roots_to_resume = 0;
+static mlsize_t incr_roots_i, incr_roots_j, incr_roots_count;
 static value *incr_roots_glob;
 uintnat caml_incremental_roots_count = 0;
 
@@ -346,22 +354,7 @@ uintnat caml_incremental_roots_count = 0;
 void caml_darken_all_roots_start (void)
 {
   caml_do_roots (caml_darken, 0);
-  roots_count = 0;
-  for (incr_roots_i = 0; caml_globals[incr_roots_i] != 0; incr_roots_i++) {
-    for(incr_roots_glob = caml_globals[incr_roots_i]; *incr_roots_glob != 0;
-        incr_roots_glob++) {
-      incr_roots_sz = Wosize_val (*incr_roots_glob);
-      for (incr_roots_j = 0; incr_roots_j < incr_roots_sz; incr_roots_j++){
-        goto setup_done;
-      }
-    }
-  }
- setup_done:
-  /* At this point, either the loop finished because there are no roots,
-     and we have `caml_globals[incr_roots_i] == 0`, or the loop indices are
-     pointing to the first root.
-  */
-  ;
+  incr_roots_to_resume = 0;
 }
 
 /* Call [caml_darken] on at most [work] global roots. Return the
@@ -370,34 +363,47 @@ void caml_darken_all_roots_start (void)
  */
 intnat caml_darken_all_roots_slice (intnat work)
 {
+  mlsize_t i, j;
+  value * glob;
   intnat work_done = 0;
   CAML_INSTR_SETUP (tmr, "");
 
-  if (caml_globals[incr_roots_i] == 0) goto finished;
-  while (work_done < work){
-    /* The loop indices are pointing to a root. We darken it, then increment
-       the loop indices. We maintain this invariant, or exit the loop
-       with `caml_globals[incr_roots_i] == 0`. */
-    caml_darken (Field (*incr_roots_glob, incr_roots_j),
-                 &Field (*incr_roots_glob, incr_roots_j));
-    ++ work_done;
-    ++ incr_roots_j;
-    while (incr_roots_j >= incr_roots_sz){
-      ++ incr_roots_glob;
-      while (*incr_roots_glob == 0){
-        ++ incr_roots_i;
-        if (caml_globals[incr_roots_i] == 0) goto finished;
-        incr_roots_glob = caml_globals[incr_roots_i];
+  if(incr_roots_to_resume){
+    goto resume;
+  }
+  /* otherwise we just start darkening */
+  incr_roots_count = 0;
+
+  /* The global roots */
+  for (i = 0; caml_globals[i] != 0; i++) {
+    for(glob = caml_globals[i]; *glob != 0; glob++) {
+      for (j = 0; j < Wosize_val(*glob); j++){
+        caml_darken (Field (*glob, j), &Field (*glob, j));
+        ++work_done;
+        if(work <= work_done){
+          /** save the state of the loop */
+          incr_roots_i = i;
+          incr_roots_glob = glob;
+          incr_roots_j = j;
+          incr_roots_count += work_done;
+          incr_roots_to_resume = 1;
+          goto finished;
+        resume:
+          i = incr_roots_i;
+          glob = incr_roots_glob;
+          j = incr_roots_j;
+        }
       }
-      incr_roots_sz = Wosize_val (*incr_roots_glob);
-      incr_roots_j = 0;
     }
   }
+
+  /** We finished before the maximum amount of work is reached, so the
+      darkening of all roots is done */
+  caml_incremental_roots_count = incr_roots_count + work_done;
+  incr_roots_to_resume = 0; /** not needed since set during start but clearer */
+
  finished:
-  roots_count += work_done;
-  if (work_done < work){
-    caml_incremental_roots_count = roots_count;
-  }
+  /** In every case */
   CAML_INSTR_TIME (tmr, "major/mark/global_roots_slice");
   return work_done;
 }
