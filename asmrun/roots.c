@@ -358,8 +358,8 @@ void caml_darken_all_roots_start (void)
 }
 
 /* Call [caml_darken] on at most [work] global roots. Return the
-   number of roots darkened; if this is less than [work], then the
-   work is done and there are no more roots to darken.
+   amount of work not used; if this is strictly greater than [0], then
+   the work is done and there are no more roots to darken.
  */
 intnat caml_darken_all_roots_slice (intnat work)
 {
@@ -405,7 +405,7 @@ intnat caml_darken_all_roots_slice (intnat work)
  finished:
   /** In every case */
   CAML_INSTR_TIME (tmr, "major/mark/global_roots_slice");
-  return work_done;
+  return work - work_done;
 }
 
 void caml_do_roots (scanning_action f, int do_globals)
