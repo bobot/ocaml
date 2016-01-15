@@ -203,10 +203,13 @@ static void start_cycle (void)
 static value current_value = 0;
 static mlsize_t current_index = 0;
 
+/* For instrumentation */
 #ifdef CAML_INSTR
 #define INSTR(x) x
+#define INSTR_COMMA(x) , x
 #else
 #define INSTR(x) /**/
+#define INSTR_COMMA(x) /**/
 #endif
 
 static void init_sweep_phase(void)
@@ -225,7 +228,8 @@ static void init_sweep_phase(void)
 
 /* auxillary function of mark_slice */
 static inline value* mark_slice_darken(value *gray_vals_ptr, value v, int i,
-                                       int in_ephemeron)
+                                       int in_ephemeron
+                                       INSTR_COMMA(int *slice_pointers))
 {
   value child;
   header_t chd;
@@ -244,7 +248,7 @@ static inline value* mark_slice_darken(value *gray_vals_ptr, value v, int i,
 #else
   if (Is_block (child) && Is_in_heap (child)) {
 #endif
-    INSTR (++ slice_pointers;)
+    INSTR (++ *slice_pointers;)
     chd = Hd_val (child);
     if (Tag_hd (chd) == Forward_tag){
       value f = Forward_val (child);
@@ -288,7 +292,8 @@ static inline value* mark_slice_darken(value *gray_vals_ptr, value v, int i,
   return gray_vals_ptr;
 }
 
-static value* mark_ephe_aux (value *gray_vals_ptr, intnat *work)
+static value* mark_ephe_aux (value *gray_vals_ptr, intnat *work
+                             INSTR_COMMA(int *slice_pointers))
 {
   value v, data, key;
   header_t hd;
@@ -333,7 +338,8 @@ static value* mark_ephe_aux (value *gray_vals_ptr, intnat *work)
     *work -= Whsize_wosize(i);
 
     if (alive_data){
-      gray_vals_ptr = mark_slice_darken(gray_vals_ptr,v,1,/*in_ephemeron=*/1);
+      gray_vals_ptr = mark_slice_darken(gray_vals_ptr,v,1,/*in_ephemeron=*/1
+                                        INSTR_COMMA(slice_pointers));
     } else { /* not triggered move to the next one */
       ephes_to_check = &Field(v,0);
       return gray_vals_ptr;
@@ -397,7 +403,9 @@ static void mark_slice (intnat work)
                  CAML_INSTR_INT ("major/mark/slice/remain", size - end);)
         for (i = start; i < end; i++){
           gray_vals_ptr = mark_slice_darken(gray_vals_ptr,v,i,
-                                            /*in_ephemeron=*/ 0);
+                                            /*in_ephemeron=*/ 0
+                                            INSTR_COMMA(&slice_pointers)
+                                            );
         }
         if (end < size){
           work = 0;
@@ -442,7 +450,8 @@ static void mark_slice (intnat work)
       limit = chunk + Chunk_size (chunk);
     } else if (*ephes_to_check != (value) NULL) {
       /* Continue to scan the list of ephe */
-      gray_vals_ptr = mark_ephe_aux(gray_vals_ptr,&work);
+      gray_vals_ptr = mark_ephe_aux(gray_vals_ptr,&work
+                                    INSTR_COMMA(&slice_pointers));
     } else if (!ephe_list_pure){
       /* We must scan again the list because some value have been darken */
       ephe_list_pure = 1;
