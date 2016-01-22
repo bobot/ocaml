@@ -787,12 +787,12 @@ if test $with_sharedlibs = "yes"; then
     i[3456]86-*-haiku*)           natdynlink=true;;
     arm*-*-linux*)                natdynlink=true;;
     arm*-*-freebsd*)              natdynlink=true;;
-    earm*-*-netbsd*)               natdynlink=true;;
+    earm*-*-netbsd*)              natdynlink=true;;
     aarch64-*-linux*)             natdynlink=true;;
   esac
 fi
 
-if test $natdynlink = "true"; then
+if $natdynlink; then
   cmxs="cmxs"
 else
   cmxs="cmxa"
@@ -869,11 +869,9 @@ case "$arch64,$arch,$model" in
       arch=none; model=default; system=unknown;;
 esac
 
-case "$native_compiler" in
-    true) ;;
-    false)
-      arch=none; model=default; system=unknown;;
-esac
+if ! $native_compiler; then
+   arch=none; model=default; system=unknown
+fi
 
 if test -z "$ccoption"; then
   nativecc="$bytecc"
@@ -1685,7 +1683,7 @@ else
   inf "Assembler does not support CFI"
 fi
 
-if test "$with_frame_pointers" = "true"; then
+if $with_frame_pointers; then
   case "$target,$cc" in
     x86_64-*-linux*,gcc*)
        nativecccompopts="$nativecccompopts -g  -fno-omit-frame-pointer"
@@ -1839,12 +1837,12 @@ else
   inf "        options for linking....... $nativecclinkopts $cclibs"
   inf "        assembler ................ $as"
   inf "        preprocessed assembler ... $aspp"
-  if test "$asm_cfi_supported" = "true"; then
+  if $asm_cfi_supported; then
   inf "        assembler supports CFI ... yes"
   else
   inf "        assembler supports CFI ... no"
   fi
-  if test "$with_frame_pointers" = "true"; then
+  if $with_frame_pointers; then
   inf "        with frame pointers....... yes"
   else
   inf "        with frame pointers....... no"
@@ -1860,7 +1858,7 @@ else
   else
   inf "        profiling with gprof ..... not supported"
   fi
-  if test "$flambda" = "true"; then
+  if $flambda; then
   inf "        using flambda middle-end . yes"
   else
   inf "        using flambda middle-end . no"
