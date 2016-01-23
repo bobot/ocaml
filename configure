@@ -34,14 +34,14 @@ mathlib='-lm'
 dllib=''
 x11_include_dir=''
 x11_lib_dir=''
-graph_wanted=yes
-pthread_wanted=yes
+graph_wanted=true
+pthread_wanted=true
 dl_defs=''
-verbose=no
-with_curses=yes
+verbose=false
+with_curses=true
 debugruntime=noruntimed
 with_instrumented_runtime=false
-with_sharedlibs=yes
+with_sharedlibs=true
 partialld="ld -r"
 with_debugger=ocamldebugger
 with_ocamldoc=ocamldoc
@@ -125,18 +125,18 @@ while : ; do
     -lib*)
         cclibs="$2 $cclibs"; shift;;
     -no-curses|--no-curses)
-        with_curses=no;;
+        with_curses=false;;
     -no-shared-libs|--no-shared-libs)
-        with_sharedlibs=no;;
+        with_sharedlibs=false;;
     -x11include*|--x11include*)
         x11_include_dir=$2; shift;;
     -x11lib*|--x11lib*)
         x11_lib_dir=$2; shift;;
-    -no-graph|--no-graph) graph_wanted=no;;
+    -no-graph|--no-graph) graph_wanted=false;;
     -with-pthread*|--with-pthread*)
         ;; # Ignored for backward compatibility
     -no-pthread*|--no-pthread*)
-        pthread_wanted=no;;
+        pthread_wanted=false;;
     -partialld|--partialld)
         partialld="$2"; shift;;
     -dldefs*|--dldefs*)
@@ -144,7 +144,7 @@ while : ; do
     -dllibs*|--dllibs*)
         dllib="$2"; shift;;
     -verbose|--verbose)
-        verbose=yes;;
+        verbose=true;;
     -with-debug-runtime|--with-debug-runtime)
         debugruntime=runtimed;;
     -with-instrumented-runtime|--with-instrumented-runtime)
@@ -390,19 +390,19 @@ case "$bytecc,$target" in
     esac
     bytecccompopts="$bytecccompopts -U_WIN32"
     dllccompopts="-U_WIN32 -DCAML_DLL"
-    if test $with_sharedlibs = yes; then
+    if $with_sharedlibs; then
       flexlink="flexlink -chain $flavor -merge-manifest -stack 16777216"
       flexdir=`$flexlink -where | dos2unix`
       if test -z "$flexdir"; then
         wrn "flexlink not found: native shared libraries won't be available."
-        with_sharedlibs=no
+        with_sharedlibs=false
       else
         iflexdir="-I\"$flexdir\""
         mkexe="$flexlink -exe"
         mkexedebugflag="-link -g"
       fi
     fi
-    if test $with_sharedlibs = no; then
+    if ! $with_sharedlibs; then
       mkexe="$mkexe -Wl,--stack,16777216"
       bytecclinkopts="-Wl,--stack,16777216"
     fi
@@ -410,7 +410,7 @@ case "$bytecc,$target" in
     ostype="Cygwin";;
   *,*-*-mingw*)
     dllccompopt="-DCAML_DLL"
-    if test $with_sharedlibs = yes; then
+    if $with_sharedlibs; then
       case "$target" in
         i686-*-*)   flexlink_chain="mingw";;
         x86_64-*-*) flexlink_chain="mingw64";;
@@ -419,7 +419,7 @@ case "$bytecc,$target" in
       flexdir=`$flexlink -where`
       if test -z "$flexdir"; then
         wrn "flexlink not found: native shared libraries won't be available."
-        with_sharedlibs=no
+        with_sharedlibs=false
       else
         iflexdir="-I\"$flexdir\""
         mkexe="$flexlink -exe"
@@ -658,7 +658,7 @@ byteccrpath=''
 mksharedlibrpath=''
 natdynlinkopts=""
 
-if test $with_sharedlibs = "yes"; then
+if $with_sharedlibs; then
   case "$target" in
     *-*-cygwin*)
       mksharedlib="$flexlink"
@@ -759,7 +759,7 @@ fi
 
 natdynlink=false
 
-if test $with_sharedlibs = "yes"; then
+if $with_sharedlibs; then
   case "$target" in
     *-*-cygwin*)                  natdynlink=true;;
     *-*-mingw*)                   natdynlink=true;;
@@ -1048,7 +1048,7 @@ fi
 
 # For the terminfo module
 
-if test "$with_curses" = "yes"; then
+if $with_curses; then
   for libs in "" "-lcurses" "-ltermcap" "-lcurses -ltermcap" "-lncurses"; do
     if sh ./hasgot $libs tgetent tgetstr tgetnum tputs; then
       inf "termcap functions found (with libraries '$libs')"
@@ -1074,29 +1074,29 @@ otherlibraries="$unixlib str num dynlink bigarray"
 
 # For the Unix library
 
-has_sockets=no
+has_sockets=false
 if sh ./hasgot socket socketpair bind listen accept connect; then
   inf "You have BSD sockets."
   echo "#define HAS_SOCKETS" >> s.h
-  has_sockets=yes
+  has_sockets=true
 elif sh ./hasgot -lnsl -lsocket socket socketpair bind listen accept connect
 then
   inf "You have BSD sockets (with libraries '-lnsl -lsocket')"
   cclibs="$cclibs -lnsl -lsocket"
   echo "#define HAS_SOCKETS" >> s.h
-  has_sockets=yes
+  has_sockets=true
 elif sh ./hasgot -lnetwork socket socketpair bind listen accept connect; then
   echo "You have BSD sockets (with library '-lnetwork')"
   cclibs="$cclibs -lnetwork"
   echo "#define HAS_SOCKETS" >> s.h
-  has_sockets=yes
+  has_sockets=true
 else
   case "$target" in
     *-*-mingw*)
       inf "You have BSD sockets (with libraries '-lws2_32')"
       cclibs="$cclibs -lws2_32"
       echo "#define HAS_SOCKETS" >> s.h
-      has_sockets=yes ;;
+      has_sockets=true ;;
     *) ;;
   esac
 fi
@@ -1200,12 +1200,12 @@ if sh ./hasgot -i sys/types.h -i sys/select.h; then
   select_include='-i sys/select.h'
 fi
 
-has_select=no
+has_select=false
 if sh ./hasgot select && \
    sh ./hasgot -i sys/types.h $select_include -t fd_set ; then
   inf "select() found."
   echo "#define HAS_SELECT" >> s.h
-  has_select=yes
+  has_select=true
 fi
 
 if sh ./hasgot symlink readlink lstat;  then
@@ -1213,17 +1213,17 @@ if sh ./hasgot symlink readlink lstat;  then
   echo "#define HAS_SYMLINK" >> s.h
 fi
 
-has_wait=no
+has_wait=false
 if sh ./hasgot waitpid;  then
   inf "waitpid() found."
   echo "#define HAS_WAITPID" >> s.h
-  has_wait=yes
+  has_wait=true
 fi
 
 if sh ./hasgot wait4;  then
   inf "wait4() found."
   echo "#define HAS_WAIT4" >> s.h
-  has_wait=yes
+  has_wait=true
 fi
 
 if sh ./hasgot -i limits.h && sh ./runtest getgroups.c; then
@@ -1252,11 +1252,11 @@ if sh ./runtest async_io.c; then
   echo "#define HAS_ASYNC_IO" >> s.h
 fi
 
-has_setitimer=no
+has_setitimer=false
 if sh ./hasgot setitimer; then
   inf "setitimer() found."
   echo "#define HAS_SETITIMER" >> s.h
-  has_setitimer="yes"
+  has_setitimer=true
 fi
 
 if sh ./hasgot gethostname; then
@@ -1269,11 +1269,11 @@ if sh ./hasgot -i sys/utsname.h && sh ./hasgot uname; then
   echo "#define HAS_UNAME" >> s.h
 fi
 
-has_gettimeofday=no
+has_gettimeofday=false
 if sh ./hasgot gettimeofday; then
   inf "gettimeofday() found."
   echo "#define HAS_GETTIMEOFDAY" >> s.h
-  has_gettimeofday="yes"
+  has_gettimeofday=true
 fi
 
 if sh ./hasgot mktime; then
@@ -1372,7 +1372,7 @@ fi
 # Determine if the debugger is supported
 
 if test -n "$with_debugger"; then
-  if test "$has_sockets" = "yes"; then
+  if $has_sockets; then
     inf "Replay debugger supported."
     with_debugger="ocamldebugger"
   else
@@ -1413,7 +1413,7 @@ echo "BNG_ASM_LEVEL=$bng_asm_level" >> Makefile
 
 systhread_support=false
 
-if test "$pthread_wanted" = "yes"; then
+if $pthread_wanted; then
   case "$target" in
     *-*-solaris*)  pthread_link="-lpthread -lposix4"
                    pthread_caml_link="-cclib -lpthread -cclib -lposix4";;
@@ -1458,10 +1458,7 @@ echo "PTHREAD_CAML_LINK=$pthread_caml_link" >> Makefile
 
 # Determine if the bytecode thread library is supported
 
-if test "$has_select" = "yes" \
-&& test "$has_setitimer" = "yes" \
-&& test "$has_gettimeofday" = "yes" \
-&& test "$has_wait" = "yes"; then
+if $has_select && $has_setitimer && $has_gettimeofday && $has_wait; then
   inf "Bytecode threads library supported."
   otherlibraries="$otherlibraries threads"
 else
@@ -1634,8 +1631,7 @@ then
 else
   inf "Options for compiling for X11: $x11_include"
   inf "Options for linking with X11: $x11_link"
-  if test "$graph_wanted" = yes
-  then
+  if $graph_wanted; then
     has_graph=true
     otherlibraries="$otherlibraries graph"
   fi
