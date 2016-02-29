@@ -51,7 +51,7 @@
          native code, or [caml_young_trigger].
 */
 
-struct generic_table CAML_TABLE_STRUCT(void*);
+struct generic_table CAML_TABLE_STRUCT(char);
 
 asize_t caml_minor_heap_wsz;
 static void *caml_young_base = NULL;
@@ -85,9 +85,9 @@ static void alloc_generic_table (struct generic_table *tbl, asize_t sz,
   if (tbl->base != NULL) caml_stat_free (tbl->base);
   tbl->base = new_table;
   tbl->ptr = tbl->base;
-  tbl->threshold = tbl->base + tbl->size;
+  tbl->threshold = tbl->base + tbl->size * element_size;
   tbl->limit = tbl->threshold;
-  tbl->end = tbl->base + tbl->size + tbl->reserve;
+  tbl->end = tbl->base + (tbl->size + tbl->reserve) * element_size;
 }
 
 void caml_alloc_table (struct caml_ref_table *tbl, asize_t sz, asize_t rsv)
