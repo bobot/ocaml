@@ -520,8 +520,8 @@ static void realloc_generic_table
     if (tbl->base == NULL){
       caml_fatal_error (msg_error);
     }
-    tbl->end = tbl->base + tbl->size + tbl->reserve;
-    tbl->threshold = tbl->base + tbl->size;
+    tbl->end = tbl->base + (tbl->size + tbl->reserve) * element_size;
+    tbl->threshold = tbl->base + tbl->size * element_size;
     tbl->ptr = tbl->base + cur_ptr;
     tbl->limit = tbl->end;
   }
