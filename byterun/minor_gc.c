@@ -280,7 +280,7 @@ void caml_oldify_one (value v, value *p)
 static inline int ephe_check_alive_data(struct caml_ephe_ref_elt *re){
   mlsize_t i;
   value child;
-  for (i = 2; i < Wosize_val(re->ephe); i++){
+  for (i = CAML_EPHE_FIRST_KEY; i < Wosize_val(re->ephe); i++){
     child = Field (re->ephe, i);
     if(child != caml_ephe_none
        && Is_block (child) && Is_young (child)
@@ -371,6 +371,7 @@ void caml_empty_minor_heap (void)
     /* Update the ephemerons */
     for (re = caml_ephe_ref_table.base;
          re < caml_ephe_ref_table.ptr; re++){
+      Assert(re->offset < Wosize_val(re->ephe));
       value *key = &Field(re->ephe,re->offset);
       if (*key != caml_ephe_none && Is_block (*key) && Is_young (*key)){
         if (Hd_val (*key) == 0){ /* Value copied to major heap */
