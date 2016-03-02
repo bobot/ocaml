@@ -371,15 +371,17 @@ void caml_empty_minor_heap (void)
     /* Update the ephemerons */
     for (re = caml_ephe_ref_table.base;
          re < caml_ephe_ref_table.ptr; re++){
-      Assert(re->offset < Wosize_val(re->ephe));
-      value *key = &Field(re->ephe,re->offset);
-      if (*key != caml_ephe_none && Is_block (*key) && Is_young (*key)){
-        if (Hd_val (*key) == 0){ /* Value copied to major heap */
-          *key = Field (*key, 0);
-        }else{ /* Value not copied so it's dead */
-          Assert(!ephe_check_alive_data(re));
-          *key = caml_ephe_none;
-          Field(re->ephe,1) = caml_ephe_none;
+      if(re->offset < Wosize_val(re->ephe)){
+        /** If it is not the case, the ephemeron have been truncated */
+        value *key = &Field(re->ephe,re->offset);
+        if (*key != caml_ephe_none && Is_block (*key) && Is_young (*key)){
+          if (Hd_val (*key) == 0){ /* Value copied to major heap */
+            *key = Field (*key, 0);
+          }else{ /* Value not copied so it's dead */
+            Assert(!ephe_check_alive_data(re));
+            *key = caml_ephe_none;
+            Field(re->ephe,1) = caml_ephe_none;
+          }
         }
       }
     }
