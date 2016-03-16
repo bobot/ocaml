@@ -20,6 +20,11 @@
 
 #include "mlvalues.h"
 
+#define Max_weak_wosize (Max_wosize - 2)
+
+/* [len] is a value that represents a number of words (fields) */
+CAMLextern value caml_ephemeron_create (mlsize_t len);
+
 /** It is an error to call these functions not in their defined
     range. */
 
@@ -38,7 +43,7 @@ CAMLextern int caml_ephemeron_get_key(value eph, mlsize_t offset, value* key);
 
 CAMLextern int caml_ephemeron_get_key_copy (value eph, mlsize_t offset,
                                             value* key);
-/** Like [caml_ephemeron_check_key], but instead of setting [*key] to
+/** Like [caml_ephemeron_get_key], but instead of setting [*key] to
     the value of the key, get a shallow copy of it.
 
     The value [eph] must be an ephemeron, [offset] a valid key offset
@@ -105,10 +110,11 @@ CAMLextern void caml_ephemeron_blit_data(value eph1, value eph2);
     values [eph1] and [eph2] must be ephemerons.
 */
 
-
-#define caml_weak_array_length caml_ephemeron_check_key_length
+#define caml_weak_array_create caml_ephemeron_create
+#define caml_weak_array_length caml_ephemeron_key_length
 #define caml_weak_array_get caml_ephemeron_get_key
 #define caml_weak_array_get_copy caml_ephemeron_get_key_copy
+#define caml_weak_array_set caml_ephemeron_set_key
 #define caml_weak_array_unset caml_ephemeron_unset_key
 #define caml_weak_array_blit caml_ephemeron_blit_key
 
