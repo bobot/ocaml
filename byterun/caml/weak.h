@@ -27,10 +27,23 @@ CAMLextern mlsize_t caml_ephemeron_key_length(value eph);
 /** return the number of key in the ephemeron. The valid key offset goes
     from [0] to the predecessor of the returned value. */
 
-CAMLextern int caml_ephemeron_check_key(value eph, mlsize_t offset);
+CAMLextern int caml_ephemeron_get_key(value eph, mlsize_t offset, value* key);
 /** return 1 if the key in the ephemeron at the given offset is set.
-    Otherwise 0. The value [eph] must be an ephemeron and [offset] a
-    valid key offset.
+    Otherwise 0. When returning 1 and when [key] is non-null, set
+    [*key] to the pointed value.
+
+    The value [eph] must be an ephemeron and [offset] a valid key
+    offset. If [key] is non-null, [*key] must be registered as a root.
+*/
+
+CAMLextern int caml_ephemeron_get_key_copy (value eph, mlsize_t offset,
+                                            value* key);
+/** Like [caml_ephemeron_check_key], but instead of setting [*key] to
+    the value of the key, get a shallow copy of it.
+
+    The value [eph] must be an ephemeron, [offset] a valid key offset
+    and [k] a block. If [key] is non-null, [*key] must be registered
+    as a root.
 */
 
 CAMLextern void caml_ephemeron_unset_key(value eph, mlsize_t offset);
@@ -42,19 +55,6 @@ CAMLextern void caml_ephemeron_set_key(value eph, mlsize_t offset, value k);
 /** set the key of the given ephemeron [eph] at the given offset
     [offset] with the given value [k]. The value [eph] must be an
     ephemeron, [offset] a valid key offset and [k] a block.
-*/
-
-CAMLextern value caml_ephemeron_get_key(value eph, mlsize_t offset);
-/** Get the key of the given ephemeron [eph] at the given offset
-    [offset]. Return [Val_unit] if the [key] is unset. The value [eph]
-    must be an ephemeron, [offset] a valid key offset and [k] a block.
-*/
-
-CAMLextern value caml_ephemeron_get_key_copy (value eph, mlsize_t offset);
-/** Get a shallow copy of the key of the given ephemeron [eph] at the
-    given offset [offset]. Return [Val_unit] if the [key] is unset.
-    The value [eph] must be an ephemeron, [offset] a valid key offset
-    and [k] a block.
 */
 
 CAMLextern void caml_ephemeron_blit_key(value eph1, mlsize_t off1,
@@ -69,9 +69,22 @@ CAMLextern void caml_ephemeron_blit_key(value eph1, mlsize_t off1,
     valid keys of [eph1] and [eph2] respectively.
 */
 
-CAMLextern int caml_ephemeron_check_data(value eph);
-/** return 1 if the data in the ephemeron is set.
-    Otherwise 0. The value [eph] must be an ephemeron.
+CAMLextern int caml_ephemeron_get_data(value eph, value* data);
+/** return 1 if the data in the ephemeron is set.  Otherwise 0. When
+    returning 1 and when [data] is non-null, set [*data] to the
+    pointed value.
+
+    The value [eph] must be an ephemeron. If [data] is non-null,
+    [*data] must be registered as a root.
+*/
+
+
+CAMLextern int caml_ephemeron_get_data_copy (value eph, value* data);
+/** Like [caml_ephemeron_get_data], but instead of setting [*data] to
+    the data, get a shallow copy of it.
+
+    The value [eph] must be an ephemeron. If [data] is non-null,
+    [*data] must be registered as a root.
 */
 
 CAMLextern void caml_ephemeron_unset_data(value eph);
@@ -84,19 +97,6 @@ CAMLextern void caml_ephemeron_set_data(value eph, value k);
     [k]. The value [eph] must be an ephemeron and [k] a block.
 */
 
-CAMLextern value caml_ephemeron_get_data(value eph);
-/** Get the data of the given ephemeron [eph]. Return [Val_unit] if
-    the [data] is unset. The value [eph] must be an ephemeron and [k]
-    a block.
-*/
-
-CAMLextern value caml_ephemeron_get_data_copy (value eph);
-/** Get a shallow copy of the data of the given ephemeron [eph] at the
-    given offset [offset]. Return [Val_unit] if the [data] is unset.
-    The value [eph] must be an ephemeron, [offset] a valid data offset
-    and [k] a block.
-*/
-
 CAMLextern void caml_ephemeron_blit_data(value eph1, value eph2);
 /** sets the data of [eph2] with the data of [eph1]. Contrary to using
     caml_ephemeron_get_data followed by caml_ephemeron_set_data or
@@ -107,10 +107,9 @@ CAMLextern void caml_ephemeron_blit_data(value eph1, value eph2);
 
 
 #define caml_weak_array_length caml_ephemeron_check_key_length
-#define caml_weak_array_check caml_ephemeron_check_key
-#define caml_weak_array_unset caml_ephemeron_unset_key
-#define caml_weak_array_set caml_ephemeron_set_key
 #define caml_weak_array_get caml_ephemeron_get_key
+#define caml_weak_array_get_copy caml_ephemeron_get_key_copy
+#define caml_weak_array_unset caml_ephemeron_unset_key
 #define caml_weak_array_blit caml_ephemeron_blit_key
 
 #endif /* CAML_WEAK_H */
