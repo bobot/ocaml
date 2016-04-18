@@ -475,7 +475,6 @@ static void mark_slice (intnat work)
             CAMLassert (start == 0);
           }
           /* Complete the marking */
-          ephes_to_check = ephes_checked_if_pure;
           caml_gc_subphase = Subphase_mark_final;
       }
         break;
