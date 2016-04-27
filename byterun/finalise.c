@@ -20,11 +20,16 @@
 #include "caml/mlvalues.h"
 #include "caml/roots.h"
 #include "caml/signals.h"
+#include "caml/finalise.h"
+
+/* final flags */
+#define FINAL_CALLED_WITHOUT_VALUE 1
 
 struct final {
   value fun;
   value val;
   int offset;
+  int flags;
 };
 
 static struct final *final_table = NULL;
@@ -64,7 +69,7 @@ static void alloc_to_do (int size)
 /* Find white finalisable values, move them to the finalising set, and
    darken them.
 */
-void caml_final_update (void)
+void caml_final_update (int flags)
 {
   uintnat i, j, k;
   uintnat todo_count = 0;
@@ -73,7 +78,8 @@ void caml_final_update (void)
   for (i = 0; i < old; i++){
     Assert (Is_block (final_table[i].val));
     Assert (Is_in_heap (final_table[i].val));
-    if (Is_white_val (final_table[i].val)) ++ todo_count;
+    if (final_table[i].flags == flags &&
+        Is_white_val (final_table[i].val)) ++ todo_count;
   }
 
   if (todo_count > 0){
@@ -83,7 +89,8 @@ void caml_final_update (void)
       Assert (Is_block (final_table[i].val));
       Assert (Is_in_heap (final_table[i].val));
       Assert (Tag_val (final_table[i].val) != Forward_tag);
-      if (Is_white_val (final_table[i].val)){
+      if (final_table[i].flags == flags &&
+          Is_white_val (final_table[i].val)){
         to_do_tl->item[k++] = final_table[i];
       }else{
         final_table[j++] = final_table[i];
@@ -97,12 +104,25 @@ void caml_final_update (void)
     young = j;
     to_do_tl->size = k;
     for (i = 0; i < k; i++){
-      /* Note that item may already be dark due to multiple entries in
-         the final table. */
-      caml_darken (to_do_tl->item[i].val, NULL);
+      if(!(final_table[i].flags & FINAL_CALLED_WITHOUT_VALUE)) {
+        /* Note that item may already be dark due to multiple entries in
+           the final table. */
+        caml_darken (to_do_tl->item[i].val, NULL);
+      }
     }
   }
 }
+
+void caml_final_update_mark_phase (void)
+{
+  return caml_final_update(0);
+}
+
+void caml_final_update_clean_phase (void)
+{
+  return caml_final_update(FINAL_CALLED_WITHOUT_VALUE);
+}
+
 
 static int running_finalisation_function = 0;
 
@@ -130,7 +150,11 @@ void caml_final_do_calls (void)
       -- to_do_hd->size;
       f = to_do_hd->item[to_do_hd->size];
       running_finalisation_function = 1;
-      res = caml_callback_exn (f.fun, f.val + f.offset);
+      if(f.flags & FINAL_CALLED_WITHOUT_VALUE){
+        res = caml_callback_exn (f.fun, Val_unit);
+      } else {
+        res = caml_callback_exn (f.fun, f.val + f.offset);
+      }
       running_finalisation_function = 0;
       if (Is_exception_result (res)) caml_raise (Extract_exception (res));
     }
@@ -197,7 +221,7 @@ void caml_final_empty_young (void)
 }
 
 /* Put (f,v) in the recent set. */
-CAMLprim value caml_final_register (value f, value v)
+static value caml_final_register_aux (value f, value v, value flags)
 {
   if (!Is_block (v)
       || !Is_in_heap_or_young(v)
@@ -227,13 +251,25 @@ CAMLprim value caml_final_register (value f, value v)
   if (Tag_val (v) == Infix_tag){
     final_table[young].offset = Infix_offset_val (v);
     final_table[young].val = v - Infix_offset_val (v);
+    final_table[young].flags = Long_val(flags);
   }else{
     final_table[young].offset = 0;
     final_table[young].val = v;
+    final_table[young].flags = Long_val(flags);
   }
   ++ young;
 
   return Val_unit;
+}
+
+CAMLprim value caml_final_register (value f, value v)
+{
+  return caml_final_register_aux(f,v,0);
+}
+
+CAMLprim value caml_final_register_called_without_value (value f, value v)
+{
+  return caml_final_register_aux(f,v,FINAL_CALLED_WITHOUT_VALUE);
 }
 
 CAMLprim value caml_final_release (value unit)

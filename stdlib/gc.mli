@@ -289,6 +289,15 @@ val finalise : ('a -> unit) -> 'a -> unit
    heap-allocated and non-constant except when the length argument is [0].
 *)
 
+val finalise_unit : (unit -> unit) -> 'a -> unit
+(** same as {!finalise} except the value is not given as argument. So
+    you can't use the given value for the computation of the finalisation
+    function. The benefit is that the function is called after the
+    value is unreachable for the last time instead of the first time.
+    So contrary to {!finalise} the value will never be reachable
+    again or used again.
+*)
+
 val finalise_release : unit -> unit
 (** A finalisation function may call [finalise_release] to tell the
     GC that it can launch the next finalisation function without waiting

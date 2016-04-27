@@ -19,6 +19,15 @@ OCaml 4.04.0:
   (Unused exception or extension constructor)
   (Gabriel Scherer)
 
+### Runtime system:
+
+- PR#7210, GPR#562: Allows to register finalisation function that are
+  called only when a value will never be reachable anymore. The
+  drawbacks compared to the existing one is that the finalisation
+  function is not called with the value as argument. These finalisers
+  are registered with `GC.finalise_last`
+  (François Bobot)
+
 ### Tools:
 
 - GPR#452: Make the output of ocamldep is more stable
