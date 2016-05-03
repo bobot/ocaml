@@ -291,11 +291,13 @@ val finalise : ('a -> unit) -> 'a -> unit
 
 val finalise_unit : (unit -> unit) -> 'a -> unit
 (** same as {!finalise} except the value is not given as argument. So
-    you can't use the given value for the computation of the finalisation
-    function. The benefit is that the function is called after the
-    value is unreachable for the last time instead of the first time.
-    So contrary to {!finalise} the value will never be reachable
-    again or used again.
+    you can't use the given value for the computation of the
+    finalisation function. The benefit is that the function is called
+    after the value is unreachable for the last time instead of the
+    first time. So contrary to {!finalise} the value will never be
+    reachable again or used again. In particular every weak pointers
+    and ephemerons that contained this value as key or data is unset
+    before running the finalisation function.
 *)
 
 val finalise_release : unit -> unit
