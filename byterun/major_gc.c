@@ -489,8 +489,7 @@ static void mark_slice (intnat work)
           /* Initialise the clean phase. */
           ephes_to_check = &caml_ephe_list_head;
         } else {
-          /* Initialise the sweep phase,
-           shortcut the unneeded clean phase. */
+          /* Initialise the sweep phase. */
           init_sweep_phase();
         }
         work = 0;

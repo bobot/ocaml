@@ -79,7 +79,9 @@ void caml_final_update (int flags)
     Assert (Is_block (final_table[i].val));
     Assert (Is_in_heap (final_table[i].val));
     if (final_table[i].flags == flags &&
-        Is_white_val (final_table[i].val)) ++ todo_count;
+        Is_white_val (final_table[i].val)){
+      ++ todo_count;
+    }
   }
 
   if (todo_count > 0){
@@ -104,7 +106,7 @@ void caml_final_update (int flags)
     young = j;
     to_do_tl->size = k;
     for (i = 0; i < k; i++){
-      if(!(final_table[i].flags & FINAL_CALLED_WITHOUT_VALUE)) {
+      if((final_table[i].flags & FINAL_CALLED_WITHOUT_VALUE) == 0) {
         /* Note that item may already be dark due to multiple entries in
            the final table. */
         caml_darken (to_do_tl->item[i].val, NULL);
