@@ -183,7 +183,9 @@ void caml_final_do_strong_roots (scanning_action f)
   for (todo = to_do_hd; todo != NULL; todo = todo->next){
     for (i = 0; i < todo->size; i++){
       Call_action (f, todo->item[i].fun);
-      Call_action (f, todo->item[i].val);
+      if((final_table[i].flags & FINAL_CALLED_WITHOUT_VALUE) == 0) {
+        Call_action (f, todo->item[i].val);
+      }
     }
   }
 }
