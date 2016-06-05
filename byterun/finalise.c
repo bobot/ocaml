@@ -145,6 +145,59 @@ void caml_final_update_clean_phase (void)
   return caml_final_update(FINAL_CALLED_WITHOUT_VALUE);
 }
 
+/** update for values in minor_gc that have the flag FINAL_CALLED_WITHOUT_VALUE
+    after minor GC.
+    All the value of finalizer that doesn't have the FINAL_CALLED_WITHOUT_VALUE
+    flag are already black since caml_final_do_young_roots.
+ */
+void caml_final_update_minor_phase ()
+{
+  uintnat i, j, k;
+  uintnat todo_count = 0;
+
+  Assert (old <= young);
+  for (i = old; i < young; i++){
+    Assert (Is_block (final_table[i].val));
+    if (Is_young(final_table[i].val) &&
+        (final_table[i].flags & FINAL_CALLED_WITHOUT_VALUE) &&
+        Hd_val (v) == 0 /** Is_white_val in minor heap */ ){
+      ++ todo_count;
+    }
+  }
+
+  /** invariant:
+      - 0 <= j <= i /\ 0 <= k <= i /\ 0 <= k <= todo_count
+      - i : index in final_table, before i all the values are in the
+      major heap or black or the finalizer have been copied in
+      to_do_tl.
+      - j : index in final_table, before j all the values are in the
+      major heap or black or the finalizer have been copied in
+      to_do_tl, next available slot.
+      - k : index in to_do_tl, next available slot.
+  */
+  if (todo_count > 0){
+    alloc_to_do (todo_count);
+    j = old;
+    k = 0;
+    for (i = old; i < young; i++){
+      Assert (Is_block (final_table[i].val));
+      Assert (Is_in_heap (final_table[i].val));
+      Assert (Tag_val (final_table[i].val) != Forward_tag);
+      if (Is_young(final_table[i].val) &&
+          (final_table[i].flags & FINAL_CALLED_WITHOUT_VALUE) &&
+          Hd_val (v) == 0 /** Is_white_val in minor heap */ ){
+        to_do_tl->item[k++] = final_table[i];
+      }else{
+        final_table[j++] = final_table[i];
+      }
+    }
+    CAMLassert (i == young);
+    young = j;
+    to_do_tl->size = k;
+  }
+}
+
+
 
 static int running_finalisation_function = 0;
 
@@ -231,7 +284,9 @@ void caml_final_do_young_roots (scanning_action f)
   Assert (old <= young);
   for (i = old; i < young; i++){
     Call_action (f, final_table[i].fun);
-    Call_action (f, final_table[i].val);
+    if((final_table[i].flags & FINAL_CALLED_WITHOUT_VALUE) == 0) {
+      Call_action (f, final_table[i].val);
+    }
   }
 }
 
