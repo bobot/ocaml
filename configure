@@ -320,7 +320,7 @@ TOOLCHAIN="cc"
 # gnu11, which is fine.
 
 case "$ocamlversion" in
-  *+dev*) gcc_warnings="-Wall -Werror";;
+  *+dev*) gcc_warnings="-Wall -Werror -Wstrict-prototypes";;
        *) gcc_warnings="-Wall";;
 esac
 

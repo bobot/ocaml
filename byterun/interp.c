@@ -190,6 +190,22 @@ sp is a local copy of the global variable caml_extern_sp. */
 static intnat caml_bcodcount;
 #endif
 
+
+typedef value (*c_primitive1)(value);
+typedef value (*c_primitive2)(value,value);
+typedef value (*c_primitive3)(value,value,value);
+typedef value (*c_primitive4)(value,value,value,value);
+typedef value (*c_primitive5)(value,value,value,value,value);
+typedef value (*c_primitiveN)(value *, int);
+
+#define Primitive1(n) ((c_primitive1)(caml_prim_table.contents[n]))
+#define Primitive2(n) ((c_primitive2)(caml_prim_table.contents[n]))
+#define Primitive3(n) ((c_primitive3)(caml_prim_table.contents[n]))
+#define Primitive4(n) ((c_primitive4)(caml_prim_table.contents[n]))
+#define Primitive5(n) ((c_primitive5)(caml_prim_table.contents[n]))
+#define PrimitiveN(n) ((c_primitiveN)(caml_prim_table.contents[n]))
+
+
 /* The interpreter itself */
 
 value caml_interprete(code_t prog, asize_t prog_size)
@@ -895,34 +911,34 @@ value caml_interprete(code_t prog, asize_t prog_size)
 
     Instruct(C_CALL1):
       Setup_for_c_call;
-      accu = Primitive(*pc)(accu);
+      accu = Primitive1(*pc)(accu);
       Restore_after_c_call;
       pc++;
       Next;
     Instruct(C_CALL2):
       Setup_for_c_call;
-      accu = Primitive(*pc)(accu, sp[1]);
+      accu = Primitive2(*pc)(accu, sp[1]);
       Restore_after_c_call;
       sp += 1;
       pc++;
       Next;
     Instruct(C_CALL3):
       Setup_for_c_call;
-      accu = Primitive(*pc)(accu, sp[1], sp[2]);
+      accu = Primitive3(*pc)(accu, sp[1], sp[2]);
       Restore_after_c_call;
       sp += 2;
       pc++;
       Next;
     Instruct(C_CALL4):
       Setup_for_c_call;
-      accu = Primitive(*pc)(accu, sp[1], sp[2], sp[3]);
+      accu = Primitive4(*pc)(accu, sp[1], sp[2], sp[3]);
       Restore_after_c_call;
       sp += 3;
       pc++;
       Next;
     Instruct(C_CALL5):
       Setup_for_c_call;
-      accu = Primitive(*pc)(accu, sp[1], sp[2], sp[3], sp[4]);
+      accu = Primitive5(*pc)(accu, sp[1], sp[2], sp[3], sp[4]);
       Restore_after_c_call;
       sp += 4;
       pc++;
@@ -931,7 +947,7 @@ value caml_interprete(code_t prog, asize_t prog_size)
       int nargs = *pc++;
       *--sp = accu;
       Setup_for_c_call;
-      accu = Primitive(*pc)(sp + 1, nargs);
+      accu = PrimitiveN(*pc)(sp + 1, nargs);
       Restore_after_c_call;
       sp += nargs;
       pc++;

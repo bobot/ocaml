@@ -13,7 +13,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-int main()
+int main(void)
 {
 #ifdef __STDC__
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L

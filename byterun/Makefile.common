@@ -110,9 +110,8 @@ primitives : $(PRIMS)
 
 prims.c : primitives
 	(echo '#define CAML_INTERNALS'; \
-         echo '#include "caml/mlvalues.h"'; \
 	 echo '#include "caml/prims.h"'; \
-	 sed -e 's/.*/extern value &();/' primitives; \
+	 sed -e 's/.*/extern void &(void);/' primitives; \
 	 echo 'c_primitive caml_builtin_cprim[] = {'; \
 	 sed -e 's/.*/	&,/' primitives; \
 	 echo '	 0 };'; \
