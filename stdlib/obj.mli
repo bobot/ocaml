@@ -207,10 +207,10 @@ module Pointer : sig
   (** Load 64 bits from a pointer.  The pointer must point to an address that
       is divisible by 8, but this is not checked. *)
 
-  external aligned_loadnative : nativeint -> nativeint = "%aligned_loadnative"
-  (** Load a machine word from a pointer.  The pointer must point to an
-      address that is a multiple of the size of a machine word in bytes,
-      but this is not checked. *)
+  (* val aligned_loadnative : nativeint -> nativeint *)
+  (* (\** Load a machine word from a pointer.  The pointer must point to an *)
+  (*     address that is a multiple of the size of a machine word in bytes, *)
+  (*     but this is not checked. *\) *)
 
   external unaligned_load16 : nativeint -> int = "%unaligned_load16"
   (** Load 16 bits from a pointer.  The pointer need not be aligned. *)
@@ -221,8 +221,7 @@ module Pointer : sig
   external unaligned_load64 : nativeint -> int64 = "%unaligned_load64"
   (** Load 64 bits from a pointer.  The pointer need not be aligned. *)
 
-  external unaligned_loadnative : nativeint -> nativeint
-    = "%unaligned_loadnative"
+  (* val unaligned_loadnative : nativeint -> nativeint *)
   (** Load a machine word from a pointer.  The pointer need not be aligned. *)
 
 end

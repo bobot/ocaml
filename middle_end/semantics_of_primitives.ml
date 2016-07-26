@@ -91,24 +91,18 @@ let for_primitive (prim : Lambda.primitive) =
   | Pfloatfield _
   | Pgetglobal _
   | Parrayrefu _
-  | Pstringrefu
-  | Pstring_load_16 true
-  | Pstring_load_32 true
-  | Pstring_load_64 true
   | Pbigarrayref (true, _, _, _)
   | Pbigstring_load_16 true
   | Pbigstring_load_32 true
-  | Pbigstring_load_64 true ->
+  | Pbigstring_load_64 true
+  | Pload(_,_,Punsafe,_) ->
     No_effects, Has_coeffects
   | Parrayrefs _
-  | Pstringrefs
-  | Pstring_load_16 false
-  | Pstring_load_32 false
-  | Pstring_load_64 false
   | Pbigarrayref (false, _, _, _)
   | Pbigstring_load_16 false
   | Pbigstring_load_32 false
-  | Pbigstring_load_64 false ->
+  | Pbigstring_load_64 false
+  | Pload(_,_,Psafe,_) ->
     (* May trigger a bounds check exception. *)
     Arbitrary_effects, Has_coeffects
   | Psetfield _
@@ -116,15 +110,11 @@ let for_primitive (prim : Lambda.primitive) =
   | Psetglobal _
   | Parraysetu _
   | Parraysets _
-  | Pstringsetu
-  | Pstringsets
-  | Pstring_set_16 _
-  | Pstring_set_32 _
-  | Pstring_set_64 _
   | Pbigarrayset _
   | Pbigstring_set_16 _
   | Pbigstring_set_32 _
-  | Pbigstring_set_64 _ ->
+  | Pbigstring_set_64 _
+  | Pset _ ->
     (* Whether or not some of these are "unsafe" is irrelevant; they always
        have an effect. *)
     Arbitrary_effects, No_coeffects
@@ -142,10 +132,6 @@ let for_primitive (prim : Lambda.primitive) =
     Misc.fatal_errorf "The primitive %a should have been eliminated by the \
         [Closure_conversion] pass."
       Printlambda.primitive prim
-  | Pload8
-  | Pload16 _
-  | Pload _ ->
-    No_effects, Has_coeffects
 
 type return_type =
   | Float

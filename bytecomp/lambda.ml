@@ -79,7 +79,7 @@ type primitive =
   | Paddfloat | Psubfloat | Pmulfloat | Pdivfloat
   | Pfloatcomp of comparison
   (* String operations *)
-  | Pstringlength | Pstringrefu | Pstringsetu | Pstringrefs | Pstringsets
+  | Pstringlength
   (* Array operations *)
   | Pmakearray of array_kind * mutable_flag
   | Pduparray of array_kind * mutable_flag
@@ -116,13 +116,6 @@ type primitive =
   | Pbigarrayset of bool * int * bigarray_kind * bigarray_layout
   (* size of the nth dimension of a big array *)
   | Pbigarraydim of int
-  (* load/set 16,32,64 bits from a string: (unsafe)*)
-  | Pstring_load_16 of bool
-  | Pstring_load_32 of bool
-  | Pstring_load_64 of bool
-  | Pstring_set_16 of bool
-  | Pstring_set_32 of bool
-  | Pstring_set_64 of bool
   (* load/set 16,32,64 bits from a
      (char, int8_unsigned_elt, c_layout) Bigarray.Array1.t : (unsafe) *)
   | Pbigstring_load_16 of bool
@@ -141,9 +134,8 @@ type primitive =
   (* Inhibition of optimisation *)
   | Popaque
   (* Pointer operations: (assumes alignment) *)
-  | Pload8
-  | Pload16 of bool
-  | Pload of boxed_integer * bool
+  | Pload of pointer_kind * integer_size * safety * alignment
+  | Pset  of pointer_kind * integer_size * safety * alignment
 
 and comparison =
     Ceq | Cneq | Clt | Cgt | Cle | Cge
@@ -159,6 +151,21 @@ and array_kind =
 
 and boxed_integer = Primitive.boxed_integer =
     Pnativeint | Pint32 | Pint64
+
+and integer_size =
+  | Psize8
+  | Psize16
+  | Psize32
+  | Psize64
+
+and safety =
+  | Psafe | Punsafe
+
+and alignment =
+  | Paligned | Punaligned
+
+and pointer_kind =
+  | Ppointer_value | Ppointer_raw
 
 and bigarray_kind =
     Pbigarray_unknown

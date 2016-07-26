@@ -115,12 +115,17 @@ module Pointer = struct
   external aligned_load16 : nativeint -> int = "%aligned_load16"
   external aligned_load32 : nativeint -> int32 = "%aligned_load32"
   external aligned_load64 : nativeint -> int64 = "%aligned_load64"
-  external aligned_loadnative : nativeint -> nativeint = "%aligned_loadnative"
+  (* let aligned_loadnative t = *)
+  (*   if Sys.word_size = 32 *)
+  (*   then Nativeint.of_int32 (aligned_load32 t) *)
+  (*   else Int64.to_nativeint (aligned_load64 t) *)
   external unaligned_load16 : nativeint -> int = "%unaligned_load16"
   external unaligned_load32 : nativeint -> int32 = "%unaligned_load32"
   external unaligned_load64 : nativeint -> int64 = "%unaligned_load64"
-  external unaligned_loadnative : nativeint -> nativeint =
-    "%unaligned_loadnative"
+  (* let unaligned_loadnative t = *)
+  (*   if Sys.word_size = 32 *)
+  (*   then Nativeint.of_int32 (unaligned_load32 t) *)
+  (*   else Int64.to_nativeint (unaligned_load64 t) *)
 end
 
 module Repr = struct

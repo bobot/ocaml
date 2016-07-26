@@ -346,16 +346,6 @@ let comp_primitive p args =
   | Pfloatcomp Cle -> Kccall("caml_le_float", 2)
   | Pfloatcomp Cge -> Kccall("caml_ge_float", 2)
   | Pstringlength -> Kccall("caml_ml_string_length", 1)
-  | Pstringrefs -> Kccall("caml_string_get", 2)
-  | Pstringsets -> Kccall("caml_string_set", 3)
-  | Pstringrefu -> Kgetstringchar
-  | Pstringsetu -> Ksetstringchar
-  | Pstring_load_16(_) -> Kccall("caml_string_get16", 2)
-  | Pstring_load_32(_) -> Kccall("caml_string_get32", 2)
-  | Pstring_load_64(_) -> Kccall("caml_string_get64", 2)
-  | Pstring_set_16(_) -> Kccall("caml_string_set16", 3)
-  | Pstring_set_32(_) -> Kccall("caml_string_set32", 3)
-  | Pstring_set_64(_) -> Kccall("caml_string_set64", 3)
   | Parraylength _ -> Kvectlength
   | Parrayrefs Pgenarray -> Kccall("caml_array_get", 2)
   | Parrayrefs Pfloatarray -> Kccall("caml_array_get_float", 2)
@@ -421,11 +411,26 @@ let comp_primitive p args =
   | Pbswap16 -> Kccall("caml_bswap16", 1)
   | Pbbswap(bi) -> comp_bint_primitive bi "bswap" args
   | Pint_as_pointer -> Kccall("caml_int_as_pointer", 1)
-  | Pload8 -> Kccall("caml_load_int8", 1)
-  | Pload16(_) -> Kccall("caml_load_int16", 1)
-  | Pload(Pnativeint, _) -> Kccall("caml_load_nativeint", 1)
-  | Pload(Pint32, _) -> Kccall("caml_load_int32", 1)
-  | Pload(Pint64, _) -> Kccall("caml_load_int64", 1)
+  | Pload(Ppointer_raw, size,_,_) ->
+      let prim =
+        Format.asprintf "caml_load_int%a" Printlambda.integer_size size in
+      Kccall(prim, 1)
+  | Pload(Ppointer_value, Psize8, Psafe, _) ->
+      Kccall("caml_string_get", 2)
+  | Pload(Ppointer_value, Psize8, Punsafe, _) ->
+      Kgetstringchar
+  | Pload(Ppointer_value, size, _, _) ->
+      let prim =
+        Format.asprintf "caml_string_get%a" Printlambda.integer_size size in
+      Kccall(prim, 2)
+  | Pset(Ppointer_value, Psize8, Psafe, _) ->
+      Kccall("caml_string_set", 3)
+  | Pset(Ppointer_value, Psize8, Punsafe, _) ->
+      Ksetstringchar
+  | Pset(Ppointer_value, size, _, _) ->
+      let prim =
+        Format.asprintf "caml_string_set%a" Printlambda.integer_size size in
+      Kccall(prim, 3)
   | _ -> fatal_error "Bytegen.comp_primitive"
 
 let is_immed n = immed_min <= n && n <= immed_max

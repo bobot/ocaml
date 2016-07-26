@@ -39,7 +39,8 @@ let prim_size (prim : Lambda.primitive) args =
   | Pccall p -> (if p.Primitive.prim_alloc then 10 else 4) + List.length args
   | Praise _ -> 4
   | Pstringlength -> 5
-  | Pstringrefs | Pstringsets -> 6
+  | Pload(Ppointer_value,Psize8,Psafe,_)
+  | Pset(Ppointer_value,Psize8,Psafe,_) -> 6
   | Pmakearray _ -> 5 + List.length args
   | Parraylength Pgenarray -> 6
   | Parraylength _ -> 2

@@ -992,8 +992,14 @@ let bigarray_set unsafe elt_kind layout b args newval dbg =
         Cop(Cstore (bigarray_word_kind elt_kind, Assignment),
             [bigarray_indexing unsafe elt_kind layout b args dbg; newval]))
 
-let unaligned_load_16 ptr idx =
-  if Arch.allow_unaligned_access
+let unaligned_load_8 ?aligned:_ ptr idx =
+  Cop(Cload Byte_unsigned, [add_int ptr idx])
+
+let unaligned_set_8 ?aligned:_ ptr idx newval =
+  Cop(Cstore (Byte_unsigned, Assignment), [add_int ptr idx; newval])
+
+let unaligned_load_16 ?(aligned=Punaligned) ptr idx =
+  if aligned = Paligned || Arch.allow_unaligned_access
   then Cop(Cload Sixteen_unsigned, [add_int ptr idx])
   else
     let v1 = Cop(Cload Byte_unsigned, [add_int ptr idx]) in
@@ -1002,8 +1008,8 @@ let unaligned_load_16 ptr idx =
     let b1, b2 = if Arch.big_endian then v1, v2 else v2, v1 in
     Cop(Cor, [lsl_int b1 (Cconst_int 8); b2])
 
-let unaligned_set_16 ptr idx newval =
-  if Arch.allow_unaligned_access
+let unaligned_set_16 ?(aligned=Punaligned) ptr idx newval =
+  if aligned = Paligned || Arch.allow_unaligned_access
   then Cop(Cstore (Sixteen_unsigned, Assignment), [add_int ptr idx; newval])
   else
     let v1 = Cop(Cand, [Cop(Clsr, [newval; Cconst_int 8]); Cconst_int 0xFF]) in
@@ -1014,8 +1020,8 @@ let unaligned_set_16 ptr idx newval =
         Cop(Cstore (Byte_unsigned, Assignment),
             [add_int (add_int ptr idx) (Cconst_int 1); b2]))
 
-let unaligned_load_32 ptr idx =
-  if Arch.allow_unaligned_access
+let unaligned_load_32 ?(aligned=Punaligned) ptr idx =
+  if aligned = Paligned || Arch.allow_unaligned_access
   then Cop(Cload Thirtytwo_unsigned, [add_int ptr idx])
   else
     let v1 = Cop(Cload Byte_unsigned, [add_int ptr idx]) in
@@ -1033,8 +1039,8 @@ let unaligned_load_32 ptr idx =
         [Cop(Cor, [lsl_int b1 (Cconst_int 24); lsl_int b2 (Cconst_int 16)]);
          Cop(Cor, [lsl_int b3 (Cconst_int 8); b4])])
 
-let unaligned_set_32 ptr idx newval =
-  if Arch.allow_unaligned_access
+let unaligned_set_32 ?(aligned=Punaligned) ptr idx newval =
+  if aligned = Paligned || Arch.allow_unaligned_access
   then Cop(Cstore (Thirtytwo_unsigned, Assignment), [add_int ptr idx; newval])
   else
     let v1 =
@@ -1059,9 +1065,9 @@ let unaligned_set_32 ptr idx newval =
             Cop(Cstore (Byte_unsigned, Assignment),
                 [add_int (add_int ptr idx) (Cconst_int 3); b4])))
 
-let unaligned_load_64 ptr idx =
+let unaligned_load_64 ?(aligned=Punaligned) ptr idx =
   assert(size_int = 8);
-  if Arch.allow_unaligned_access
+  if aligned = Paligned || Arch.allow_unaligned_access
   then Cop(Cload Word_int, [add_int ptr idx])
   else
     let v1 = Cop(Cload Byte_unsigned, [add_int ptr idx]) in
@@ -1095,9 +1101,9 @@ let unaligned_load_64 ptr idx =
               Cop(Cor, [lsl_int b7 (Cconst_int 8);
                         b8])])])
 
-let unaligned_set_64 ptr idx newval =
+let unaligned_set_64 ?(aligned=Punaligned) ptr idx newval =
   assert(size_int = 8);
-  if Arch.allow_unaligned_access
+  if aligned = Paligned || Arch.allow_unaligned_access
   then Cop(Cstore (Word_int, Assignment), [add_int ptr idx; newval])
   else
     let v1 =
@@ -1154,9 +1160,41 @@ let max_or_zero a =
     let sign_negation = Cop(Cxor, [sign; Cconst_int (-1)]) in
     Cop(Cand, [sign_negation; a]))
 
-let check_bound unsafe dbg a1 a2 k =
+(** check that [a2 < max (a1-limit) 0] before executing [k],
+    assuming that [0 <= a1] and [0 <= limit] *)
+let check_bound unsafe dbg a1 limit a2 k =
+  assert (0 <= limit);
   if unsafe then k
-  else Csequence(make_checkbound dbg [max_or_zero a1;a2], k)
+  else
+    let bound = if limit <= 0 then a1 else max_or_zero (sub_int a1 (Cconst_int limit)) in
+    Csequence(make_checkbound dbg [bound;a2], k)
+
+let integer_size_size = function
+  | Psize8 -> 1
+  | Psize16 -> 2
+  | Psize32 -> 4
+  | Psize64 -> 8
+
+let load_gen size safe aligned dbg ptr offset =
+  let loader =
+    match size with
+    | Psize8 -> unaligned_load_8
+    | Psize16 -> unaligned_load_16
+    | Psize32 -> unaligned_load_32
+    | Psize64 -> unaligned_load_64
+  in
+  let limit = integer_size_size size - 1 in
+  let res =
+    (bind "ptr" ptr (fun str ->
+         bind "index" offset (fun idx ->
+             check_bound (safe=Punsafe) dbg
+               (string_length str) limit idx
+               (loader ~aligned str idx))))
+  in
+  match size with
+  | Psize8  | Psize16 -> tag_int res
+  | Psize32 -> box_int dbg Pint32 res
+  | Psize64 -> box_int dbg Pint64 res
 
 (* Simplification of some primitives into C calls *)
 
@@ -1194,9 +1232,10 @@ let simplif_primitive_32bits = function
       Pccall (default_prim ("caml_ba_get_" ^ string_of_int n))
   | Pbigarrayset(_unsafe, n, Pbigarray_int64, _layout) ->
       Pccall (default_prim ("caml_ba_set_" ^ string_of_int n))
-  | Pstring_load_64(_) -> Pccall (default_prim "caml_string_get64")
-  | Pstring_set_64(_) -> Pccall (default_prim "caml_string_set64")
-  | Pload(Pint64, _) -> Pccall (default_prim "caml_load_int64")
+  | Pload(Ppointer_value,Psize64,_,_) -> Pccall (default_prim "caml_string_get64")
+  | Pset (Ppointer_value,Psize64,_,_) -> Pccall (default_prim "caml_string_set64")
+  | Pload(Ppointer_raw,Psize64,_,_) -> Pccall (default_prim "caml_load_int64")
+  | Pset(Ppointer_raw,Psize64,_,_) -> Pccall (default_prim "caml_set_int64")
   | Pbigstring_load_64(_) -> Pccall (default_prim "caml_ba_uint8_get64")
   | Pbigstring_set_64(_) -> Pccall (default_prim "caml_ba_uint8_set64")
   | Pbbswap Pint64 -> Pccall (default_prim "caml_int64_bswap")
@@ -1341,6 +1380,11 @@ let unboxed_number_kind_of_unbox dbg = function
   | Unboxed_integer bi -> Boxed (Boxed_integer (bi, dbg), false)
   | Untagged_int -> No_unboxing
 
+let unboxed_number_of_integer_size dbg = function
+  | Psize8 | Psize16 -> No_unboxing
+  | Psize32 -> Boxed (Boxed_integer (Pint32, dbg), false)
+  | Psize64 -> Boxed (Boxed_integer (Pint64, dbg), false)
+
 let rec is_unboxed_number ~strict env e =
   (* Given unboxed_number_kind from two branches of the code, returns the
      resulting unboxed_number_kind.
@@ -1414,12 +1458,10 @@ let rec is_unboxed_number ~strict env e =
             Boxed (Boxed_integer (Pint64, dbg), false)
         | Pbigarrayref(_, _, Pbigarray_native_int,_) ->
             Boxed (Boxed_integer (Pnativeint, dbg), false)
-        | Pstring_load_32(_) -> Boxed (Boxed_integer (Pint32, dbg), false)
-        | Pstring_load_64(_) -> Boxed (Boxed_integer (Pint64, dbg), false)
         | Pbigstring_load_32(_) -> Boxed (Boxed_integer (Pint32, dbg), false)
         | Pbigstring_load_64(_) -> Boxed (Boxed_integer (Pint64, dbg), false)
         | Praise _ -> No_result
-        | Pload(bi, _) -> Boxed(Boxed_integer (bi, dbg), false)
+        | Pload(_,size, _, _) -> unboxed_number_of_integer_size dbg size
         | _ -> No_unboxing
       end
   | Ulet (_, _, _, _, e) | Uletrec (_, e) | Usequence (_, e) ->
@@ -1776,38 +1818,9 @@ and transl_prim_1 env p arg dbg =
      Cop(Caddi, [transl env arg; Cconst_int (-1)])
      (* always a pointer outside the heap *)
   (* Pointer operations *)
-  | Pload8 ->
-     tag_int (Cop(Cload Byte_unsigned,
-                  [transl_unbox_int env Pnativeint arg]))
-  | Pload16 aligned ->
-     let unboxed_arg = transl_unbox_int env Pnativeint arg in
-     tag_int (
-       if aligned then
-         Cop(Cload Sixteen_unsigned, [unboxed_arg])
-       else unaligned_load_16 unboxed_arg (Cconst_int 0))
-  | Pload(Pint32, aligned) ->
-     let unboxed_arg = transl_unbox_int env Pnativeint arg in
-     box_int dbg Pint32 (
-       if aligned then
-         Cop(Cload Thirtytwo_unsigned, [unboxed_arg])
-       else unaligned_load_32 unboxed_arg (Cconst_int 0))
-  | Pload(Pint64, aligned) ->
-     assert(size_int = 8);
-     let unboxed_arg = transl_unbox_int env Pnativeint arg in
-     box_int dbg Pint64 (
-       if aligned then
-         Cop(Cload Word_val, [unboxed_arg])
-       else unaligned_load_64 unboxed_arg (Cconst_int 0))
-  | Pload(Pnativeint, aligned) ->
-     let unboxed_arg = transl_unbox_int env Pnativeint arg in
-     box_int dbg Pnativeint (
-       if aligned then
-         Cop(Cload Word_val, [unboxed_arg])
-       else
-         match size_int with
-         | 4 -> unaligned_load_32 unboxed_arg (Cconst_int 0)
-         | 8 -> unaligned_load_64 unboxed_arg (Cconst_int 0)
-         | _ -> assert false)
+  | Pload(Ppointer_raw,size,Punsafe,aligned) ->
+      let ptr = transl_unbox_int env Pnativeint arg in
+      load_gen size Punsafe aligned dbg ptr (Cconst_int 0)
   (* Exceptions *)
   | Praise k ->
       Cop(Craise (k, dbg), [transl env arg])
@@ -1992,23 +2005,14 @@ and transl_prim_2 env p arg1 arg2 dbg =
                   [transl_unbox_float env arg1; transl_unbox_float env arg2]))
 
   (* String operations *)
-  | Pstringrefu ->
-      tag_int(Cop(Cload Byte_unsigned,
-                  [add_int (transl env arg1) (untag_int(transl env arg2))]))
-  | Pstringrefs ->
-      tag_int
-        (bind "str" (transl env arg1) (fun str ->
-          bind "index" (untag_int (transl env arg2)) (fun idx ->
-            Csequence(
-              make_checkbound dbg [string_length str; idx],
-              Cop(Cload Byte_unsigned, [add_int str idx])))))
+  | Pload(Ppointer_value,size,safe,aligned) ->
+      let ptr = transl env arg1 in
+      let offset = untag_int(transl env arg2) in
+      load_gen size safe aligned dbg ptr offset
 
-  | Pstring_load_16(unsafe) ->
-     tag_int
-       (bind "str" (transl env arg1) (fun str ->
-        bind "index" (untag_int (transl env arg2)) (fun idx ->
-          check_bound unsafe dbg (sub_int (string_length str) (Cconst_int 1))
-                      idx (unaligned_load_16 str idx))))
+  | Pset(Ppointer_raw,size,Punsafe,aligned) ->
+      let ptr = transl_unbox_int env Pnativeint arg1 in
+      return_unit(set_gen size Punsafe aligned env dbg ptr (Cconst_int 0) arg2)
 
   | Pbigstring_load_16(unsafe) ->
      tag_int
@@ -2016,17 +2020,9 @@ and transl_prim_2 env p arg1 arg2 dbg =
         bind "index" (untag_int (transl env arg2)) (fun idx ->
         bind "ba_data" (Cop(Cload Word_int, [field_address ba 1]))
          (fun ba_data ->
-          check_bound unsafe dbg (sub_int (Cop(Cload Word_int,
-                                               [field_address ba 5]))
-                                          (Cconst_int 1)) idx
-                      (unaligned_load_16 ba_data idx)))))
-
-  | Pstring_load_32(unsafe) ->
-     box_int dbg Pint32
-       (bind "str" (transl env arg1) (fun str ->
-        bind "index" (untag_int (transl env arg2)) (fun idx ->
-          check_bound unsafe dbg (sub_int (string_length str) (Cconst_int 3))
-                      idx (unaligned_load_32 str idx))))
+           check_bound unsafe dbg
+             (Cop(Cload Word_int, [field_address ba 5])) 1 idx
+             (unaligned_load_16 ba_data idx)))))
 
   | Pbigstring_load_32(unsafe) ->
      box_int dbg Pint32
@@ -2034,17 +2030,9 @@ and transl_prim_2 env p arg1 arg2 dbg =
         bind "index" (untag_int (transl env arg2)) (fun idx ->
         bind "ba_data" (Cop(Cload Word_int, [field_address ba 1]))
          (fun ba_data ->
-          check_bound unsafe dbg (sub_int (Cop(Cload Word_int,
-                                               [field_address ba 5]))
-                                          (Cconst_int 3)) idx
-                      (unaligned_load_32 ba_data idx)))))
-
-  | Pstring_load_64(unsafe) ->
-     box_int dbg Pint64
-       (bind "str" (transl env arg1) (fun str ->
-        bind "index" (untag_int (transl env arg2)) (fun idx ->
-          check_bound unsafe dbg (sub_int (string_length str) (Cconst_int 7))
-                      idx (unaligned_load_64 str idx))))
+           check_bound unsafe dbg
+             (Cop(Cload Word_int, [field_address ba 5])) 3 idx
+             (unaligned_load_32 ba_data idx)))))
 
   | Pbigstring_load_64(unsafe) ->
      box_int dbg Pint64
@@ -2052,10 +2040,9 @@ and transl_prim_2 env p arg1 arg2 dbg =
         bind "index" (untag_int (transl env arg2)) (fun idx ->
         bind "ba_data" (Cop(Cload Word_int, [field_address ba 1]))
          (fun ba_data ->
-          check_bound unsafe dbg (sub_int (Cop(Cload Word_int,
-                                               [field_address ba 5]))
-                                          (Cconst_int 7)) idx
-                      (unaligned_load_64 ba_data idx)))))
+           check_bound unsafe dbg
+             (Cop(Cload Word_int, [field_address ba 5])) 7 idx
+             (unaligned_load_64 ba_data idx)))))
 
   (* Array operations *)
   | Parrayrefu kind ->
@@ -2176,18 +2163,10 @@ and transl_prim_2 env p arg1 arg2 dbg =
 and transl_prim_3 env p arg1 arg2 arg3 dbg =
   match p with
   (* String operations *)
-    Pstringsetu ->
-      return_unit(Cop(Cstore (Byte_unsigned, Assignment),
-                      [add_int (transl env arg1) (untag_int(transl env arg2));
-                        untag_int(transl env arg3)]))
-  | Pstringsets ->
-      return_unit
-        (bind "str" (transl env arg1) (fun str ->
-          bind "index" (untag_int (transl env arg2)) (fun idx ->
-            Csequence(
-              make_checkbound dbg [string_length str; idx],
-              Cop(Cstore (Byte_unsigned, Assignment),
-                  [add_int str idx; untag_int(transl env arg3)])))))
+  | Pset(Ppointer_value,size,safe,aligned) ->
+      let ptr = transl env arg1 in
+      let offset = untag_int(transl env arg2) in
+      return_unit(set_gen size safe aligned env dbg ptr offset arg3)
 
   (* Array operations *)
   | Parraysetu kind ->
@@ -2247,14 +2226,6 @@ and transl_prim_3 env p arg1 arg2 arg3 dbg =
                       float_array_set arr idx newval))))
       end)
 
-  | Pstring_set_16(unsafe) ->
-     return_unit
-       (bind "str" (transl env arg1) (fun str ->
-        bind "index" (untag_int (transl env arg2)) (fun idx ->
-        bind "newval" (untag_int (transl env arg3)) (fun newval ->
-          check_bound unsafe dbg (sub_int (string_length str) (Cconst_int 1))
-                      idx (unaligned_set_16 str idx newval)))))
-
   | Pbigstring_set_16(unsafe) ->
      return_unit
        (bind "ba" (transl env arg1) (fun ba ->
@@ -2262,18 +2233,9 @@ and transl_prim_3 env p arg1 arg2 arg3 dbg =
         bind "newval" (untag_int (transl env arg3)) (fun newval ->
         bind "ba_data" (Cop(Cload Word_int, [field_address ba 1]))
              (fun ba_data ->
-          check_bound unsafe dbg (sub_int (Cop(Cload Word_int,
-                                               [field_address ba 5]))
-                                          (Cconst_int 1))
-                      idx (unaligned_set_16 ba_data idx newval))))))
-
-  | Pstring_set_32(unsafe) ->
-     return_unit
-       (bind "str" (transl env arg1) (fun str ->
-        bind "index" (untag_int (transl env arg2)) (fun idx ->
-        bind "newval" (transl_unbox_int env Pint32 arg3) (fun newval ->
-          check_bound unsafe dbg (sub_int (string_length str) (Cconst_int 3))
-                      idx (unaligned_set_32 str idx newval)))))
+              check_bound unsafe dbg
+                (Cop(Cload Word_int, [field_address ba 5])) 1 idx
+                (unaligned_set_16 ba_data idx newval))))))
 
   | Pbigstring_set_32(unsafe) ->
      return_unit
@@ -2282,18 +2244,9 @@ and transl_prim_3 env p arg1 arg2 arg3 dbg =
         bind "newval" (transl_unbox_int env Pint32 arg3) (fun newval ->
         bind "ba_data" (Cop(Cload Word_int, [field_address ba 1]))
              (fun ba_data ->
-          check_bound unsafe dbg (sub_int (Cop(Cload Word_int,
-                                               [field_address ba 5]))
-                                          (Cconst_int 3))
-                      idx (unaligned_set_32 ba_data idx newval))))))
-
-  | Pstring_set_64(unsafe) ->
-     return_unit
-       (bind "str" (transl env arg1) (fun str ->
-        bind "index" (untag_int (transl env arg2)) (fun idx ->
-        bind "newval" (transl_unbox_int env Pint64 arg3) (fun newval ->
-          check_bound unsafe dbg (sub_int (string_length str) (Cconst_int 7))
-                      idx (unaligned_set_64 str idx newval)))))
+              check_bound unsafe dbg
+                (Cop(Cload Word_int, [field_address ba 5])) 3 idx
+                (unaligned_set_32 ba_data idx newval))))))
 
   | Pbigstring_set_64(unsafe) ->
      return_unit
@@ -2302,10 +2255,9 @@ and transl_prim_3 env p arg1 arg2 arg3 dbg =
         bind "newval" (transl_unbox_int env Pint64 arg3) (fun newval ->
         bind "ba_data" (Cop(Cload Word_int, [field_address ba 1]))
              (fun ba_data ->
-          check_bound unsafe dbg (sub_int (Cop(Cload Word_int,
-                                               [field_address ba 5]))
-                                          (Cconst_int 7)) idx
-                      (unaligned_set_64 ba_data idx newval))))))
+              check_bound unsafe dbg
+                (Cop(Cload Word_int, [field_address ba 5])) 7 idx
+                (unaligned_set_64 ba_data idx newval))))))
 
   | prim ->
       fatal_errorf "Cmmgen.transl_prim_3: %a" Printlambda.primitive prim
@@ -2520,6 +2472,27 @@ and transl_letrec env bindings cont =
     | (_id, _exp, RHS_nonrec) :: rem ->
         fill_blocks rem
   in init_blocks bsz
+
+and set_gen size safe aligned env dbg ptr offset newval =
+  let newval =
+    match size with
+    | Psize8  | Psize16 -> untag_int (transl env newval)
+    | Psize32 -> transl_unbox_int env Pint32 newval
+    | Psize64 -> transl_unbox_int env Pint64 newval
+  in
+  let setter =
+    match size with
+    | Psize8 -> unaligned_set_8
+    | Psize16 -> unaligned_set_16
+    | Psize32 -> unaligned_set_32
+    | Psize64 -> unaligned_set_64
+  in
+  let limit = integer_size_size size - 1 in
+  (bind "ptr" ptr (fun str ->
+       bind "index" offset (fun idx ->
+           check_bound (safe=Punsafe) dbg
+             (string_length str) limit idx
+             (setter ~aligned str idx newval))))
 
 (* Translate a function definition *)
 

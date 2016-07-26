@@ -18,6 +18,7 @@ open Lambda
 open Format
 
 val structured_constant: formatter -> structured_constant -> unit
+val integer_size: formatter -> integer_size -> unit
 val lambda: formatter -> lambda -> unit
 val program: formatter -> program -> unit
 val primitive: formatter -> primitive -> unit

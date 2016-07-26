@@ -126,6 +126,24 @@ let block_shape ppf shape = match shape with
         t;
       Format.fprintf ppf ")"
 
+let integer_size ppf = function
+  | Psize8 -> fprintf ppf "8"
+  | Psize16 -> fprintf ppf "16"
+  | Psize32 -> fprintf ppf "32"
+  | Psize64 -> fprintf ppf "64"
+
+let alignment ppf = function
+  | Paligned -> fprintf ppf "aligned"
+  | Punaligned -> fprintf ppf "unaligned"
+
+let safety ppf = function
+  | Psafe -> fprintf ppf "safe"
+  | Punsafe -> fprintf ppf "unsafe"
+
+let pointer_kind ppf = function
+  | Ppointer_value -> fprintf ppf "value"
+  | Ppointer_raw -> fprintf ppf "raw"
+
 let primitive ppf = function
   | Pidentity -> fprintf ppf "id"
   | Pignore -> fprintf ppf "ignore"
@@ -201,10 +219,6 @@ let primitive ppf = function
   | Pfloatcomp(Cgt) -> fprintf ppf ">."
   | Pfloatcomp(Cge) -> fprintf ppf ">=."
   | Pstringlength -> fprintf ppf "string.length"
-  | Pstringrefu -> fprintf ppf "string.unsafe_get"
-  | Pstringsetu -> fprintf ppf "string.unsafe_set"
-  | Pstringrefs -> fprintf ppf "string.get"
-  | Pstringsets -> fprintf ppf "string.set"
   | Parraylength k -> fprintf ppf "array.length[%s]" (array_kind k)
   | Pmakearray (k, Mutable) -> fprintf ppf "makearray[%s]" (array_kind k)
   | Pmakearray (k, Immutable) -> fprintf ppf "makearray_imm[%s]" (array_kind k)
@@ -254,24 +268,6 @@ let primitive ppf = function
   | Pbigarrayset(unsafe, _n, kind, layout) ->
       print_bigarray "set" unsafe kind ppf layout
   | Pbigarraydim(n) -> fprintf ppf "Bigarray.dim_%i" n
-  | Pstring_load_16(unsafe) ->
-     if unsafe then fprintf ppf "string.unsafe_get16"
-     else fprintf ppf "string.get16"
-  | Pstring_load_32(unsafe) ->
-     if unsafe then fprintf ppf "string.unsafe_get32"
-     else fprintf ppf "string.get32"
-  | Pstring_load_64(unsafe) ->
-     if unsafe then fprintf ppf "string.unsafe_get64"
-     else fprintf ppf "string.get64"
-  | Pstring_set_16(unsafe) ->
-     if unsafe then fprintf ppf "string.unsafe_set16"
-     else fprintf ppf "string.set16"
-  | Pstring_set_32(unsafe) ->
-     if unsafe then fprintf ppf "string.unsafe_set32"
-     else fprintf ppf "string.set32"
-  | Pstring_set_64(unsafe) ->
-     if unsafe then fprintf ppf "string.unsafe_set64"
-     else fprintf ppf "string.set64"
   | Pbigstring_load_16(unsafe) ->
      if unsafe then fprintf ppf "bigarray.array1.unsafe_get16"
      else fprintf ppf "bigarray.array1.get16"
@@ -294,13 +290,18 @@ let primitive ppf = function
   | Pbbswap(bi) -> print_boxed_integer "bswap" ppf bi
   | Pint_as_pointer -> fprintf ppf "int_as_pointer"
   | Popaque -> fprintf ppf "opaque"
-  | Pload8 -> fprintf ppf "ptr.load8"
-  | Pload16(aligned) ->
-     if aligned then fprintf ppf "ptr.aligned_load16"
-     else fprintf ppf "ptr.unaligned_load16"
-  | Pload(bi, aligned) ->
-        fprintf ppf "ptr.%saligned_load" (if aligned then "" else "un");
-        print_boxed_integer "" ppf bi
+  | Pload(pointer,size,safe,align) ->
+      fprintf ppf "ptr.%a_%a_%a_load%a"
+        pointer_kind pointer
+        safety safe
+        alignment align
+        integer_size size
+  | Pset(pointer,size,safe,align) ->
+      fprintf ppf "ptr.%a_%a_%a_set%a"
+        pointer_kind pointer
+        safety safe
+        alignment align
+        integer_size size
 
 let name_of_primitive = function
   | Pidentity -> "Pidentity"
@@ -347,10 +348,6 @@ let name_of_primitive = function
   | Pdivfloat -> "Pdivfloat"
   | Pfloatcomp _ -> "Pfloatcomp"
   | Pstringlength -> "Pstringlength"
-  | Pstringrefu -> "Pstringrefu"
-  | Pstringsetu -> "Pstringsetu"
-  | Pstringrefs -> "Pstringrefs"
-  | Pstringsets -> "Pstringsets"
   | Parraylength _ -> "Parraylength"
   | Pmakearray _ -> "Pmakearray"
   | Pduparray _ -> "Pduparray"
@@ -381,12 +378,6 @@ let name_of_primitive = function
   | Pbigarrayref _ -> "Pbigarrayref"
   | Pbigarrayset _ -> "Pbigarrayset"
   | Pbigarraydim _ -> "Pbigarraydim"
-  | Pstring_load_16 _ -> "Pstring_load_16"
-  | Pstring_load_32 _ -> "Pstring_load_32"
-  | Pstring_load_64 _ -> "Pstring_load_64"
-  | Pstring_set_16 _ -> "Pstring_set_16"
-  | Pstring_set_32 _ -> "Pstring_set_32"
-  | Pstring_set_64 _ -> "Pstring_set_64"
   | Pbigstring_load_16 _ -> "Pbigstring_load_16"
   | Pbigstring_load_32 _ -> "Pbigstring_load_32"
   | Pbigstring_load_64 _ -> "Pbigstring_load_64"
@@ -397,9 +388,8 @@ let name_of_primitive = function
   | Pbbswap _ -> "Pbbswap"
   | Pint_as_pointer -> "Pint_as_pointer"
   | Popaque -> "Popaque"
-  | Pload8 -> "Pload8"
-  | Pload16 _ -> "Pload16"
   | Pload _ -> "Pload"
+  | Pset _ -> "Pset"
 
 let function_attribute ppf { inline; specialise; is_a_functor } =
   if is_a_functor then

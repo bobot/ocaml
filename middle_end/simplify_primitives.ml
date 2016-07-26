@@ -195,14 +195,16 @@ let primitive (p : Lambda.primitive) (args, approxs) expr dbg ~size_int
     | [Value_string { size; contents = Some s };
        (Value_int x | Value_constptr x)] when x >= 0 && x < size ->
         begin match p with
-        | Pstringrefu
-        | Pstringrefs -> S.const_char_expr expr s.[x]
+        | Pload(Ppointer_value, Psize8, _, _)
+          -> S.const_char_expr expr s.[x]
         | _ -> expr, A.value_unknown Other, C.Benefit.zero
         end
     | [Value_string { size; contents = None };
        (Value_int x | Value_constptr x)]
-      when x >= 0 && x < size && p = Lambda.Pstringrefs ->
-        Flambda.Prim (Pstringrefu, args, dbg),
+      when x >= 0 && x < size &&
+           p = Lambda.Pload(Ppointer_value,Psize8,Psafe,Paligned) ->
+        let prim = Lambda.Pload(Ppointer_value,Psize8,Punsafe,Paligned) in
+        Flambda.Prim (prim, args, dbg),
           A.value_unknown Other,
           (* we improved it, but there is no way to account for that: *)
           C.Benefit.zero

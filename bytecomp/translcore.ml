@@ -205,10 +205,6 @@ let primitives_table = create_hashtable 57 [
   "%gtfloat", Pfloatcomp Cgt;
   "%gefloat", Pfloatcomp Cge;
   "%string_length", Pstringlength;
-  "%string_safe_get", Pstringrefs;
-  "%string_safe_set", Pstringsets;
-  "%string_unsafe_get", Pstringrefu;
-  "%string_unsafe_set", Pstringsetu;
   "%array_length", Parraylength Pgenarray;
   "%array_safe_get", Parrayrefs Pgenarray;
   "%array_safe_set", Parraysets Pgenarray;
@@ -294,18 +290,6 @@ let primitives_table = create_hashtable 57 [
   "%caml_ba_dim_1", Pbigarraydim(1);
   "%caml_ba_dim_2", Pbigarraydim(2);
   "%caml_ba_dim_3", Pbigarraydim(3);
-  "%caml_string_get16", Pstring_load_16(false);
-  "%caml_string_get16u", Pstring_load_16(true);
-  "%caml_string_get32", Pstring_load_32(false);
-  "%caml_string_get32u", Pstring_load_32(true);
-  "%caml_string_get64", Pstring_load_64(false);
-  "%caml_string_get64u", Pstring_load_64(true);
-  "%caml_string_set16", Pstring_set_16(false);
-  "%caml_string_set16u", Pstring_set_16(true);
-  "%caml_string_set32", Pstring_set_32(false);
-  "%caml_string_set32u", Pstring_set_32(true);
-  "%caml_string_set64", Pstring_set_64(false);
-  "%caml_string_set64u", Pstring_set_64(true);
   "%caml_bigstring_get16", Pbigstring_load_16(false);
   "%caml_bigstring_get16u", Pbigstring_load_16(true);
   "%caml_bigstring_get32", Pbigstring_load_32(false);
@@ -324,15 +308,29 @@ let primitives_table = create_hashtable 57 [
   "%bswap_native", Pbbswap(Pnativeint);
   "%int_as_pointer", Pint_as_pointer;
   "%opaque", Popaque;
-  "%load8", Pload8;
-  "%unaligned_load16", Pload16(false);
-  "%aligned_load16", Pload16(true);
-  "%unaligned_load32", Pload(Pint32, false); 
-  "%aligned_load32", Pload(Pint32, true);
-  "%unaligned_load64", Pload(Pint64, false); 
-  "%aligned_load64", Pload(Pint64, true);
-  "%unaligned_loadnative", Pload(Pnativeint, false); 
-  "%aligned_loadnative", Pload(Pnativeint, true);
+  "%load8",              Pload(Ppointer_raw  , Psize8 , Punsafe, Paligned  );
+  "%unaligned_load16",   Pload(Ppointer_raw  , Psize16, Punsafe, Punaligned);
+  "%aligned_load16",     Pload(Ppointer_raw  , Psize16, Punsafe, Paligned  );
+  "%unaligned_load32",   Pload(Ppointer_raw  , Psize32, Punsafe, Punaligned);
+  "%aligned_load32",     Pload(Ppointer_raw  , Psize32, Punsafe, Paligned  );
+  "%unaligned_load64",   Pload(Ppointer_raw  , Psize64, Punsafe, Punaligned);
+  "%aligned_load64",     Pload(Ppointer_raw  , Psize64, Punsafe, Paligned  );
+  "%string_safe_get",    Pload(Ppointer_value, Psize8 , Psafe  , Paligned  );
+  "%caml_string_get16",  Pload(Ppointer_value, Psize16, Psafe,   Punaligned);
+  "%caml_string_get32",  Pload(Ppointer_value, Psize32, Psafe,   Punaligned);
+  "%caml_string_get64",  Pload(Ppointer_value, Psize64, Psafe,   Punaligned);
+  "%string_unsafe_get",  Pload(Ppointer_value, Psize8 , Punsafe, Paligned  );
+  "%caml_string_get16u", Pload(Ppointer_value, Psize16, Punsafe, Punaligned);
+  "%caml_string_get32u", Pload(Ppointer_value, Psize32, Punsafe, Punaligned);
+  "%caml_string_get64u", Pload(Ppointer_value, Psize64, Punsafe, Punaligned);
+  "%string_safe_set",    Pset (Ppointer_value, Psize8 , Psafe  , Paligned  );
+  "%caml_string_set16",  Pset (Ppointer_value, Psize16, Psafe,   Punaligned);
+  "%caml_string_set32",  Pset (Ppointer_value, Psize32, Psafe,   Punaligned);
+  "%caml_string_set64",  Pset (Ppointer_value, Psize64, Psafe,   Punaligned);
+  "%string_unsafe_set",  Pset (Ppointer_value, Psize8 , Punsafe, Paligned  );
+  "%caml_string_set16u", Pset (Ppointer_value, Psize16, Punsafe, Punaligned);
+  "%caml_string_set32u", Pset (Ppointer_value, Psize32, Punsafe, Punaligned);
+  "%caml_string_set64u", Pset (Ppointer_value, Psize64, Punsafe, Punaligned);
 ]
 
 let find_primitive loc prim_name =
@@ -654,9 +652,12 @@ let event_function exp lam =
 let primitive_is_ccall = function
   (* Determine if a primitive is a Pccall or will be turned later into
      a C function call that may raise an exception *)
-  | Pccall _ | Pstringrefs | Pstringsets | Parrayrefs _ | Parraysets _ |
+  | Pccall _ | Parrayrefs _ | Parraysets _ |
     Pbigarrayref _ | Pbigarrayset _ | Pduprecord _ | Pdirapply _ |
-    Prevapply _ -> true
+    Prevapply _
+  | Pload(Ppointer_value,Psize8,Psafe,_)
+  | Pset(Ppointer_value,Psize8,Psafe,_)
+    -> true
   | _ -> false
 
 (* Assertions *)
