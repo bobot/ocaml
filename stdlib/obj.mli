@@ -155,7 +155,7 @@ module Pointer : sig
 (** Operations on raw pointers.
 
    This module provides operations on pointers, which represent raw machine
-   addresses.  Any external pointer can be stored in an {!Obj.Pointer.t} and
+   addresses.  Any external pointer can be stored in a {!Nativeint.t} and
    presented back to external code.  Furthermore, pointers can be
    dereferenced, yielding the contents of the memory location they point to.
 
@@ -192,48 +192,89 @@ module Pointer : sig
    @since 4.04.0
  *)
 
-type t
-(** The type of raw pointers *)
+  external load8 : nativeint -> char = "%load8"
+  (** Load a byte from the pointer.  The result is placed in an OCaml [char] *)
 
-val offset : nativeint -> t -> t [@@inline]
-(** [offset n ptr] creates a new pointer with offset [n] from [ptr]. *)
+  external aligned_load16 : nativeint -> int = "%aligned_load16"
+  (** Load 16 bits from a pointer.  The pointer must point to an even address,
+      but this is not checked. *)
 
-external to_nativeint : t -> nativeint = "%identity"
-(** Get the address pointed to as a number *)
+  external aligned_load32 : nativeint -> int32 = "%aligned_load32"
+  (** Load 32 bits from a pointer.  The pointer must point to an address that
+      is divisible by 4, but this is not checked. *)
 
-external of_nativeint : nativeint -> t = "%identity"
-(** Convert a nativeint to a pointer *)
+  external aligned_load64 : nativeint -> int64 = "%aligned_load64"
+  (** Load 64 bits from a pointer.  The pointer must point to an address that
+      is divisible by 8, but this is not checked. *)
 
-external load8 : t -> char = "%load8"
-(** Load a byte from the pointer.  The result is placed in an OCaml [char] *)
+  external aligned_loadnative : nativeint -> nativeint = "%aligned_loadnative"
+  (** Load a machine word from a pointer.  The pointer must point to an
+      address that is a multiple of the size of a machine word in bytes,
+      but this is not checked. *)
 
-external aligned_load16 : t -> int = "%aligned_load16"
-(** Load 16 bits from a pointer.  The pointer must point to an even address,
-    but this is not checked. *)
+  external unaligned_load16 : nativeint -> int = "%unaligned_load16"
+  (** Load 16 bits from a pointer.  The pointer need not be aligned. *)
 
-external aligned_load32 : t -> int32 = "%aligned_load32"
-(** Load 32 bits from a pointer.  The pointer must point to an address that
-    is divisible by 4, but this is not checked. *)
+  external unaligned_load32 : nativeint -> int32 = "%unaligned_load32"
+  (** Load 32 bits from a pointer.  The pointer need not be aligned. *)
 
-external aligned_load64 : t -> int64 = "%aligned_load64"
-(** Load 64 bits from a pointer.  The pointer must point to an address that
-    is divisible by 8, but this is not checked. *)
+  external unaligned_load64 : nativeint -> int64 = "%unaligned_load64"
+  (** Load 64 bits from a pointer.  The pointer need not be aligned. *)
 
-external aligned_loadnative : t -> nativeint = "%aligned_loadnative"
-(** Load a machine word from a pointer.  The pointer must point to an
-    address that is a multiple of the size of a machine word in bytes,
-    but this is not checked. *)
+  external unaligned_loadnative : nativeint -> nativeint
+    = "%unaligned_loadnative"
+  (** Load a machine word from a pointer.  The pointer need not be aligned. *)
 
-external unaligned_load16 : t -> int = "%unaligned_load16"
-(** Load 16 bits from a pointer.  The pointer need not be aligned. *)
+end
 
-external unaligned_load32 : t -> int32 = "%unaligned_load32"
-(** Load 32 bits from a pointer.  The pointer need not be aligned. *)
+module Repr : sig
+(** Operations on ocaml values.
 
-external unaligned_load64 : t -> int64 = "%unaligned_load64"
-(** Load 64 bits from a pointer.  The pointer need not be aligned. *)
+    This module is very similar to the previous one except it works on
+    OCaml values. These functions are GC friendly compared to the
+    previous one. They take one ocaml value and a memory offset.
 
-external unaligned_loadnative : t -> nativeint = "%unaligned_loadnative"
-(** Load a machine word from a pointer.  The pointer need not be aligned. *)
+    @since 4.04.0
+*)
+
+  external load8 : t -> int -> char = "%string_unsafe_get"
+  (** Load a byte from a value and an offset. The result is placed
+      in an OCaml [char] *)
+
+  external unaligned_load16 : t -> int -> int = "%caml_string_get16u"
+  (** Load 16 bits from a value and an offset. The resulting pointer
+      need not be aligned. *)
+
+  external unaligned_load32 : t -> int -> int32 = "%caml_string_get32u"
+  (** Load 32 bits from a value and an offset. The resulting pointer
+      need not be aligned. *)
+
+  external unaligned_load64 : t -> int -> int64 = "%caml_string_get64u"
+  (** Load 64 bits from a value and an offset. The resulting pointer
+      need not be aligned. *)
+
+  val unaligned_loadnative : t -> int -> nativeint
+  (** Load a machine word from a value and an offset. The resulting
+      pointer need not be aligned. *)
+
+  external set8 : t -> int -> char -> unit = "%string_unsafe_set"
+  (** Set a byte from a value and an offset. The result is placed
+      in an OCaml [char] *)
+
+  external unaligned_set16 : t -> int -> int -> unit = "%caml_string_set16u"
+  (** Set 16 bits from a value and an offset. The resulting pointer
+      need not be aligned. *)
+
+  external unaligned_set32 : t -> int -> int32 -> unit = "%caml_string_set32u"
+  (** Set 32 bits from a value and an offset. The resulting pointer
+      need not be aligned. *)
+
+  external unaligned_set64 : t -> int -> int64 -> unit = "%caml_string_set64u"
+  (** Set 64 bits from a value and an offset. The resulting pointer
+      need not be aligned. *)
+
+  val unaligned_setnative : t -> int -> nativeint -> unit
+  (** Set a machine word from a value and an offset. The resulting
+      pointer need not be aligned. *)
 
 end

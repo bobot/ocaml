@@ -111,18 +111,33 @@ module Ephemeron = struct
 end
 
 module Pointer = struct
-  type t = nativeint
+  external load8: nativeint -> char = "%load8"
+  external aligned_load16 : nativeint -> int = "%aligned_load16"
+  external aligned_load32 : nativeint -> int32 = "%aligned_load32"
+  external aligned_load64 : nativeint -> int64 = "%aligned_load64"
+  external aligned_loadnative : nativeint -> nativeint = "%aligned_loadnative"
+  external unaligned_load16 : nativeint -> int = "%unaligned_load16"
+  external unaligned_load32 : nativeint -> int32 = "%unaligned_load32"
+  external unaligned_load64 : nativeint -> int64 = "%unaligned_load64"
+  external unaligned_loadnative : nativeint -> nativeint =
+    "%unaligned_loadnative"
+end
 
-  let offset : nativeint -> t -> t = Nativeint.add [@@inline]
-  external to_nativeint : t -> nativeint = "%identity"
-  external of_nativeint : nativeint -> t = "%identity"
-  external load8: t -> char = "%load8"
-  external aligned_load16 : t -> int = "%aligned_load16"
-  external aligned_load32 : t -> int32 = "%aligned_load32"
-  external aligned_load64 : t -> int64 = "%aligned_load64"
-  external aligned_loadnative : t -> nativeint = "%aligned_loadnative"
-  external unaligned_load16 : t -> int = "%unaligned_load16"
-  external unaligned_load32 : t -> int32 = "%unaligned_load32"
-  external unaligned_load64 : t -> int64 = "%unaligned_load64"
-  external unaligned_loadnative : t -> nativeint = "%unaligned_loadnative"
+module Repr = struct
+  external load8 : t -> int -> char = "%string_unsafe_get"
+  external unaligned_load16 : t -> int -> int = "%caml_string_get16u"
+  external unaligned_load32 : t -> int -> int32 = "%caml_string_get32u"
+  external unaligned_load64 : t -> int -> int64 = "%caml_string_get64u"
+  let unaligned_loadnative t off =
+    if Sys.word_size = 32
+    then Nativeint.of_int32 (unaligned_load32 t off)
+    else Int64.to_nativeint (unaligned_load64 t off)
+  external set8 : t -> int -> char -> unit = "%string_unsafe_set"
+  external unaligned_set16 : t -> int -> int -> unit = "%caml_string_set16u"
+  external unaligned_set32 : t -> int -> int32 -> unit = "%caml_string_set32u"
+  external unaligned_set64 : t -> int -> int64 -> unit = "%caml_string_set64u"
+  let unaligned_setnative t off v =
+    if Sys.word_size = 32
+    then unaligned_set32 t off (Nativeint.to_int32 v)
+    else unaligned_set64 t off (Int64.of_nativeint v)
 end
