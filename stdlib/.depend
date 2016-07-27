@@ -109,8 +109,8 @@ moreLabels.cmi : set.cmi map.cmi hashtbl.cmi
 nativeint.cmo : sys.cmi pervasives.cmi nativeint.cmi
 nativeint.cmx : sys.cmx pervasives.cmx nativeint.cmi
 nativeint.cmi :
-obj.cmo : sys.cmi marshal.cmi int64.cmi int32.cmi obj.cmi
-obj.cmx : sys.cmx marshal.cmx int64.cmx int32.cmx obj.cmi
+obj.cmo : sys.cmi nativeint.cmi marshal.cmi int64.cmi int32.cmi obj.cmi
+obj.cmx : sys.cmx nativeint.cmx marshal.cmx int64.cmx int32.cmx obj.cmi
 obj.cmi : int32.cmi
 oo.cmo : camlinternalOO.cmi oo.cmi
 oo.cmx : camlinternalOO.cmx oo.cmi
@@ -261,8 +261,8 @@ moreLabels.cmo : set.cmi map.cmi hashtbl.cmi moreLabels.cmi
 moreLabels.p.cmx : set.cmx map.cmx hashtbl.cmx moreLabels.cmi
 nativeint.cmo : sys.cmi pervasives.cmi nativeint.cmi
 nativeint.p.cmx : sys.cmx pervasives.cmx nativeint.cmi
-obj.cmo : sys.cmi marshal.cmi int64.cmi int32.cmi obj.cmi
-obj.p.cmx : sys.cmx marshal.cmx int64.cmx int32.cmx obj.cmi
+obj.cmo : sys.cmi nativeint.cmi marshal.cmi int64.cmi int32.cmi obj.cmi
+obj.p.cmx : sys.cmx nativeint.cmx marshal.cmx int64.cmx int32.cmx obj.cmi
 oo.cmo : camlinternalOO.cmi oo.cmi
 oo.p.cmx : camlinternalOO.cmx oo.cmi
 parsing.cmo : obj.cmi lexing.cmi array.cmi parsing.cmi

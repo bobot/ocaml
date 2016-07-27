@@ -480,13 +480,15 @@ typing/untypeast.cmi : typing/typedtree.cmi typing/path.cmi \
     parsing/parsetree.cmi parsing/longident.cmi parsing/location.cmi \
     parsing/asttypes.cmi
 bytecomp/bytegen.cmo : typing/types.cmi bytecomp/switch.cmi typing/subst.cmi \
-    typing/primitive.cmi utils/misc.cmi bytecomp/matching.cmi \
-    bytecomp/lambda.cmi bytecomp/instruct.cmi typing/ident.cmi \
-    utils/config.cmi parsing/asttypes.cmi bytecomp/bytegen.cmi
+    bytecomp/printlambda.cmi typing/primitive.cmi utils/misc.cmi \
+    bytecomp/matching.cmi bytecomp/lambda.cmi bytecomp/instruct.cmi \
+    typing/ident.cmi utils/config.cmi parsing/asttypes.cmi \
+    bytecomp/bytegen.cmi
 bytecomp/bytegen.cmx : typing/types.cmx bytecomp/switch.cmx typing/subst.cmx \
-    typing/primitive.cmx utils/misc.cmx bytecomp/matching.cmx \
-    bytecomp/lambda.cmx bytecomp/instruct.cmx typing/ident.cmx \
-    utils/config.cmx parsing/asttypes.cmi bytecomp/bytegen.cmi
+    bytecomp/printlambda.cmx typing/primitive.cmx utils/misc.cmx \
+    bytecomp/matching.cmx bytecomp/lambda.cmx bytecomp/instruct.cmx \
+    typing/ident.cmx utils/config.cmx parsing/asttypes.cmi \
+    bytecomp/bytegen.cmi
 bytecomp/bytegen.cmi : bytecomp/lambda.cmi bytecomp/instruct.cmi
 bytecomp/bytelibrarian.cmo : utils/misc.cmi parsing/location.cmi \
     utils/config.cmi bytecomp/cmo_format.cmi utils/clflags.cmi \
@@ -1940,6 +1942,7 @@ middle_end/base_types/variable.cmx : utils/misc.cmx utils/identifiable.cmx \
     middle_end/base_types/variable.cmi
 middle_end/base_types/variable.cmi : utils/identifiable.cmi typing/ident.cmi \
     middle_end/base_types/compilation_unit.cmi
+driver/compdynlink.cmi :
 driver/compenv.cmo : utils/warnings.cmi utils/misc.cmi parsing/location.cmi \
     utils/config.cmi utils/clflags.cmi driver/compenv.cmi
 driver/compenv.cmx : utils/warnings.cmx utils/misc.cmx parsing/location.cmx \
