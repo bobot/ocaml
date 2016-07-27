@@ -189,6 +189,8 @@ module Pointer : sig
    attacker to execute arbitrary code.  Note that this applies to the rest of
    the {!Obj} module as well.
 
+   The memory is byte-addressable.
+
    @since 4.04.0
  *)
 
@@ -221,7 +223,40 @@ module Pointer : sig
   external unaligned_load64 : nativeint -> int64 = "%unaligned_load64"
   (** Load 64 bits from a pointer.  The pointer need not be aligned. *)
 
-  (* val unaligned_loadnative : nativeint -> nativeint *)
+  (* val unaligned_setnative : nativeint -> nativeint *)
+  (** Load a machine word from a pointer.  The pointer need not be aligned. *)
+
+
+  external set8 : nativeint -> char -> unit = "%set8"
+  (** Set a byte to the pointer.  The result is placed in an OCaml [char] *)
+
+  external aligned_set16 : nativeint -> int -> unit = "%aligned_set16"
+  (** Set 16 bits to a pointer.  The pointer must point to an even address,
+      but this is not checked. *)
+
+  external aligned_set32 : nativeint -> int32 -> unit = "%aligned_set32"
+  (** Set 32 bits to a pointer.  The pointer must point to an address that
+      is divisible by 4, but this is not checked. *)
+
+  external aligned_set64 : nativeint -> int64 -> unit = "%aligned_set64"
+  (** Set 64 bits to a pointer.  The pointer must point to an address that
+      is divisible by 8, but this is not checked. *)
+
+  (* val aligned_loadnative : nativeint -> nativeint *)
+  (* (\** Load a machine word from a pointer.  The pointer must point to an *)
+  (*     address that is a multiple of the size of a machine word in bytes, *)
+  (*     but this is not checked. *\) *)
+
+  external unaligned_set16 : nativeint -> int -> unit = "%unaligned_set16"
+  (** Set 16 bits to a pointer.  The pointer need not be aligned. *)
+
+  external unaligned_set32 : nativeint -> int32 -> unit = "%unaligned_set32"
+  (** Set 32 bits to a pointer.  The pointer need not be aligned. *)
+
+  external unaligned_set64 : nativeint -> int64 -> unit = "%unaligned_set64"
+  (** Set 64 bits to a pointer.  The pointer need not be aligned. *)
+
+  (* val unaligned_setnative : nativeint -> nativeint *)
   (** Load a machine word from a pointer.  The pointer need not be aligned. *)
 
 end

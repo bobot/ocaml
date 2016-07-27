@@ -126,6 +126,21 @@ module Pointer = struct
   (*   if Sys.word_size = 32 *)
   (*   then Nativeint.of_int32 (unaligned_load32 t) *)
   (*   else Int64.to_nativeint (unaligned_load64 t) *)
+  external set8: nativeint -> char -> unit = "%set8"
+  external aligned_set16 : nativeint -> int -> unit = "%aligned_set16"
+  external aligned_set32 : nativeint -> int32 -> unit = "%aligned_set32"
+  external aligned_set64 : nativeint -> int64 -> unit = "%aligned_set64"
+  (* let aligned_setnative t v = *)
+  (*   if Sys.word_size = 32 *)
+  (*   then aligned_set32 t (Nativeint.to_int32 v) *)
+  (*   else aligned_set64 t (Int64.of_nativeint v) *)
+  external unaligned_set16 : nativeint -> int -> unit = "%unaligned_set16"
+  external unaligned_set32 : nativeint -> int32 -> unit = "%unaligned_set32"
+  external unaligned_set64 : nativeint -> int64 -> unit = "%unaligned_set64"
+  (* let unaligned_setnative t v = *)
+  (*   if Sys.word_size = 32 *)
+  (*   then unaligned_set32 t (Nativeint.to_int32 v) *)
+  (*   else unaligned_set64 t (Int64.of_nativeint v) *)
 end
 
 module Repr = struct

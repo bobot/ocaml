@@ -423,6 +423,10 @@ let comp_primitive p args =
       let prim =
         Format.asprintf "caml_string_get%a" Printlambda.integer_size size in
       Kccall(prim, 2)
+  | Pset(Ppointer_raw, size,_,_) ->
+      let prim =
+        Format.asprintf "caml_set_int%a" Printlambda.integer_size size in
+      Kccall(prim, 1)
   | Pset(Ppointer_value, Psize8, Psafe, _) ->
       Kccall("caml_string_set", 3)
   | Pset(Ppointer_value, Psize8, Punsafe, _) ->

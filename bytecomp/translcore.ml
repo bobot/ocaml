@@ -323,6 +323,13 @@ let primitives_table = create_hashtable 57 [
   "%caml_string_get16u", Pload(Ppointer_value, Psize16, Punsafe, Punaligned);
   "%caml_string_get32u", Pload(Ppointer_value, Psize32, Punsafe, Punaligned);
   "%caml_string_get64u", Pload(Ppointer_value, Psize64, Punsafe, Punaligned);
+  "%set8",               Pset (Ppointer_raw  , Psize8 , Punsafe, Paligned  );
+  "%unaligned_set16",    Pset (Ppointer_raw  , Psize16, Punsafe, Punaligned);
+  "%aligned_set16",      Pset (Ppointer_raw  , Psize16, Punsafe, Paligned  );
+  "%unaligned_set32",    Pset (Ppointer_raw  , Psize32, Punsafe, Punaligned);
+  "%aligned_set32",      Pset (Ppointer_raw  , Psize32, Punsafe, Paligned  );
+  "%unaligned_set64",    Pset (Ppointer_raw  , Psize64, Punsafe, Punaligned);
+  "%aligned_set64",      Pset (Ppointer_raw  , Psize64, Punsafe, Paligned  );
   "%string_safe_set",    Pset (Ppointer_value, Psize8 , Psafe  , Paligned  );
   "%caml_string_set16",  Pset (Ppointer_value, Psize16, Psafe,   Punaligned);
   "%caml_string_set32",  Pset (Ppointer_value, Psize32, Psafe,   Punaligned);
