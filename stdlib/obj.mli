@@ -209,10 +209,10 @@ module Pointer : sig
   (** Load 64 bits from a pointer.  The pointer must point to an address that
       is divisible by 8, but this is not checked. *)
 
-  (* val aligned_loadnative : nativeint -> nativeint *)
-  (* (\** Load a machine word from a pointer.  The pointer must point to an *)
-  (*     address that is a multiple of the size of a machine word in bytes, *)
-  (*     but this is not checked. *\) *)
+  val aligned_loadnative : nativeint -> nativeint
+  (** Load a machine word from a pointer.  The pointer must point to an
+      address that is a multiple of the size of a machine word in bytes,
+      but this is not checked. *)
 
   external unaligned_load16 : nativeint -> int = "%unaligned_load16"
   (** Load 16 bits from a pointer.  The pointer need not be aligned. *)
@@ -223,7 +223,7 @@ module Pointer : sig
   external unaligned_load64 : nativeint -> int64 = "%unaligned_load64"
   (** Load 64 bits from a pointer.  The pointer need not be aligned. *)
 
-  (* val unaligned_setnative : nativeint -> nativeint *)
+  val unaligned_loadnative : nativeint -> nativeint
   (** Load a machine word from a pointer.  The pointer need not be aligned. *)
 
 
@@ -242,10 +242,10 @@ module Pointer : sig
   (** Set 64 bits to a pointer.  The pointer must point to an address that
       is divisible by 8, but this is not checked. *)
 
-  (* val aligned_loadnative : nativeint -> nativeint *)
-  (* (\** Load a machine word from a pointer.  The pointer must point to an *)
-  (*     address that is a multiple of the size of a machine word in bytes, *)
-  (*     but this is not checked. *\) *)
+  val aligned_setnative : nativeint -> nativeint -> unit
+  (** Set a machine word to a pointer.  The pointer must point to an
+      address that is a multiple of the size of a machine word in bytes,
+      but this is not checked. *)
 
   external unaligned_set16 : nativeint -> int -> unit = "%unaligned_set16"
   (** Set 16 bits to a pointer.  The pointer need not be aligned. *)
@@ -256,8 +256,8 @@ module Pointer : sig
   external unaligned_set64 : nativeint -> int64 -> unit = "%unaligned_set64"
   (** Set 64 bits to a pointer.  The pointer need not be aligned. *)
 
-  (* val unaligned_setnative : nativeint -> nativeint *)
-  (** Load a machine word from a pointer.  The pointer need not be aligned. *)
+  val unaligned_setnative : nativeint -> nativeint -> unit
+  (** Set a machine word to a pointer.  The pointer need not be aligned. *)
 
 end
 
