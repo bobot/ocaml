@@ -106,6 +106,11 @@ OCaml 4.04.0:
   array of floats
   (Thomas Braibant)
 
+- GPR#652: Add in Obj.Ptr.* functions for getting and setting the value
+  of C pointers directly in OCaml. Add in Obj.Repr.* functions for getting
+  and setting memory inside OCaml values.
+  (Demi Marie Obenour and François Bobot, review by Jérémie Dimino)
+
 ### Manual:
 
 - PR#7245, GPR#565: clarification to the wording and documentation
