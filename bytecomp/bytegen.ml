@@ -305,6 +305,11 @@ let comp_bint_primitive bi suff args =
                 | Pint64 -> "caml_int64_" in
   Kccall(pref ^ suff, List.length args)
 
+let integer_size_primitive base size args =
+  Kccall(Format.asprintf base Printlambda.integer_size size,
+         List.length args)
+
+
 let comp_primitive p args =
   match p with
     Pgetglobal id -> Kgetglobal id
@@ -412,29 +417,21 @@ let comp_primitive p args =
   | Pbbswap(bi) -> comp_bint_primitive bi "bswap" args
   | Pint_as_pointer -> Kccall("caml_int_as_pointer", 1)
   | Pload(Ppointer_raw, size,_,_) ->
-      let prim =
-        Format.asprintf "caml_load_int%a" Printlambda.integer_size size in
-      Kccall(prim, 1)
+      integer_size_primitive "caml_load_int%a" size args
   | Pload(Ppointer_value, Psize8, Psafe, _) ->
       Kccall("caml_string_get", 2)
   | Pload(Ppointer_value, Psize8, Punsafe, _) ->
       Kgetstringchar
   | Pload(Ppointer_value, size, _, _) ->
-      let prim =
-        Format.asprintf "caml_string_get%a" Printlambda.integer_size size in
-      Kccall(prim, 2)
+      integer_size_primitive "caml_string_get%a" size args
   | Pset(Ppointer_raw, size,_,_) ->
-      let prim =
-        Format.asprintf "caml_set_int%a" Printlambda.integer_size size in
-      Kccall(prim, 1)
+      integer_size_primitive "caml_set_int%a" size args
   | Pset(Ppointer_value, Psize8, Psafe, _) ->
       Kccall("caml_string_set", 3)
   | Pset(Ppointer_value, Psize8, Punsafe, _) ->
       Ksetstringchar
   | Pset(Ppointer_value, size, _, _) ->
-      let prim =
-        Format.asprintf "caml_string_set%a" Printlambda.integer_size size in
-      Kccall(prim, 3)
+      integer_size_primitive "caml_string_set%a" size args
   | _ -> fatal_error "Bytegen.comp_primitive"
 
 let is_immed n = immed_min <= n && n <= immed_max
